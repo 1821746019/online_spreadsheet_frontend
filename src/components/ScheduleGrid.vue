@@ -2,7 +2,7 @@
 <template>
   <div class="schedule-grid">
     <div class="header-row">
-      <span class="day-header" style="background-color:black">时间</span>
+      <div class="day-header" style="background-color:black">时间</div>
       <div v-for="day in days" :key="day" class="day-header">
         {{ dayMap[day] }}
       </div>
@@ -10,7 +10,7 @@
 
     <div class="time-grid">
       <div class="time-column">
-        <div v-for="time in timeSlots" :key="time" class="time-slot">
+        <div v-for="time in realtime" :key="time" class="time-slot">
           {{ time }}
         </div>
       </div>
@@ -41,7 +41,7 @@ const emit = defineEmits(['courseMoved'])
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const timeSlots = Array.from({ length: 10 }, (_, i) => `${i + 8}:00`)
-
+const realtime = ['8:30-9:10','9:15-9:55','10:15-10:55','11:00-11:40','14:00-14:40','14:45-15:25','15:45-16:25','16:30-17:10','19:00-20:20','20:30-21:50']
 const dayMap = {
   Monday: '周一',
   Tuesday: '周二',
@@ -75,7 +75,7 @@ function handleDrop(e, day) {
   const duration = parseInt(originalCourse.end.split(':')[0]) - parseInt(originalCourse.start.split(':')[0])
 
   // 边界检查（8:00 - 17:00）
-  if (startHour < 8 || (startHour + duration) > 17) {
+  if (startHour < 8 || (startHour + duration) > 18) {
     console.warn('超出时间范围')
     return
   }
@@ -120,7 +120,7 @@ function getUserColor(userId) {
 
 .header-row {
   display: grid;
-  grid-template-columns: 120px repeat(7, 1fr);
+  grid-template-columns: 100px repeat(7, 1fr);
   gap: 1px;
   margin-bottom: 1px;
   background: #f0f0f0;
@@ -129,7 +129,7 @@ function getUserColor(userId) {
 .day-header {
   background: #2c3e50;
   color: white;
-  padding: 15px 10px;
+  padding: 15px 15px;
   text-align: center;
   font-weight: 600;
   font-size: 0.95em;
@@ -138,7 +138,7 @@ function getUserColor(userId) {
 
 .time-grid {
   display: grid;
-  grid-template-columns: 120px repeat(7, 1fr);
+  grid-template-columns: 100px repeat(7, 1fr);
   gap: 1px;
   background: #f8f9fa;
   border: 1px solid #eee;
@@ -149,6 +149,9 @@ function getUserColor(userId) {
   left: 0;
   z-index: 2;
   background: #fff;
+  white-space: nowrap;
+  font-size: 0.7em;
+  border-right: 1px solid #eee;
 }
 
 .time-slot {

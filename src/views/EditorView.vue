@@ -53,7 +53,6 @@ function addNewCourse() {
   margin-bottom: 20px;
   display: flex;
   gap: 20px;
-  align-items: center;
 }
 
 .color-indicator {
