@@ -19,7 +19,7 @@
 
         <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
           :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
-          :class="{ 'conflict': course.hasConflict }">
+          :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
           <div class="course-content">
             <span class="course-title">{{ course.course }}</span>
             <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
@@ -33,9 +33,45 @@
       </div>
     </div>
   </div>
+  <!-- 编辑层 -->
+  <teleport to="body">
+    <div v-if="showEditDialog" class="edit-modal">
+      <div class="modal-content">
+        <h3>编辑课程信息</h3>
+        <div class="form-group">
+          <label>课程名称</label>
+          <input v-model="editingCourse.course" type="text">
+        </div>
+        <div class="form-group">
+          <label>授课教师</label>
+          <input v-model="editingCourse.teacher" type="text">
+        </div>
+        <div class="form-group">
+          <label>教室</label>
+          <input v-model="editingCourse.room" type="text">
+        </div>
+        <div class="form-group">
+          <label>开始时间</label>
+          <input v-model="editingCourse.start" type="text" >
+        </div>
+        <div class="form-group">
+          <label>结束时间</label>
+          <input v-model="editingCourse.end" type="text" >
+        </div>
+        <div class="button-group">
+          <button @click="showEditDialog = false" class="save-btn">取消</button>
+          <button @click="handleDelete" class="delete-btn" v-if="editingCourse">
+            删除课程
+          </button>
+          <button @click="saveCourse" class="save-btn">保存</button>
+        </div>
+      </div>
+    </div>
+  </teleport>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 
 
@@ -43,7 +79,7 @@ const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const realtime = ['8:30-9:10','9:15-9:55','10:15-10:55','11:00-11:40','14:00-14:40','14:45-15:25','15:45-16:25','16:30-17:10','19:00-20:20','20:30-21:50']
+const realtime = ['8:30-9:10', '9:15-9:55', '10:15-10:55', '11:00-11:40', '14:00-14:40', '14:45-15:25', '15:45-16:25', '16:30-17:10', '19:00-20:20', '20:30-21:50']
 const dayMap = {
   Monday: '周一',
   Tuesday: '周二',
@@ -94,19 +130,47 @@ function handleDrop(e, day) {
 }
 
 function getCourseStyle(course) {
-  const startHour = parseInt(course.start.split(':')[0])
-  const duration = parseInt(course.end.split(':')[0]) - startHour
+  const startHour = parseInt(course.start.split(':')[0])+parseInt(course.start.split(':')[1])/60
+  const duration = parseInt(course.end.split(':')[0])+ parseInt(course.end.split(':')[1])/60- startHour
   return {
     '--hour': startHour - 8,
     '--duration': duration,
     top: `${(startHour - 8) * 80}px`, // 关键修改点：80px高度
-    height: `${duration * 60}px`       // 关键修改点：80px高度
+    height: `${duration * 70}px`       // 关键修改点：80px高度
   }
 }
 
 function getUserColor(userId) {
   const user = store.collaborators.find(u => u.id === userId)
   return user ? user.color : '#ccc'
+}
+
+
+// 编辑层
+// 新增以下代码
+
+// 编辑相关状态
+const editingCourse = ref(null)
+const showEditDialog = ref(false)
+
+// 双击事件处理
+function handleDblClick(course) {
+  editingCourse.value = JSON.parse(JSON.stringify(course)) // 深拷贝避免污染原始数据
+  showEditDialog.value = true
+}
+
+// 保存修改
+function saveCourse() {
+  if (editingCourse.value) {
+    store.updateCourse(editingCourse.value)
+    showEditDialog.value = false
+  }
+}
+const handleDelete = () => {
+  if (editingCourse.value && confirm('确认删除该课程？')) {
+    store.removeCourse(editingCourse.value.id)
+    showEditDialog.value = false
+  }
 }
 </script>
 
@@ -157,7 +221,8 @@ function getUserColor(userId) {
 }
 
 .time-slot {
-  height: 80px; /* 关键高度设置 */
+  height: 80px;
+  /* 关键高度设置 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,11 +234,13 @@ function getUserColor(userId) {
 
 .day-column {
   position: relative;
-  min-height: 800px; /* 10小时*80px */
+  min-height: 800px;
+  /* 10小时*80px */
   background: #fff;
   border-right: 1px solid #eee;
   background-image: linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
-  background-size: 100% 80px; /* 关键修改：匹配80px高度 */
+  background-size: 100% 80px;
+  /* 关键修改：匹配80px高度 */
 }
 
 .course-block {
@@ -188,8 +255,10 @@ function getUserColor(userId) {
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  top: calc(var(--hour) * 80px); /* CSS变量计算 */
-  height: calc(var(--duration) * 80px); /* CSS变量计算 */
+  top: calc(var(--hour) * 80px);
+  /* CSS变量计算 */
+  height: calc(var(--duration) * 80px);
+  /* CSS变量计算 */
 }
 
 .course-block:hover {
@@ -240,9 +309,17 @@ function getUserColor(userId) {
 
 
 @keyframes pulse {
-  0% { transform: scale(0.95); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(0.95); }
+  0% {
+    transform: scale(0.95);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(0.95);
+  }
 }
 
 @media (max-width: 1600px) {
@@ -265,4 +342,77 @@ function getUserColor(userId) {
     font-size: 0.85em;
   }
 }
+
+
+
+/* 新增编辑模态框样式 */
+.edit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 400px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.button-group {
+  margin-top: 1.5rem;
+  text-align: right;
+}
+
+.save-btn {
+  background-color: #2c3e50;
+  color: white;
+  margin-left: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+
+.delete-btn {
+  background-color: #ff4444;
+  color: white;
+  margin-left: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.delete-btn:hover {
+  background-color: #cc0000;
+}
+
 </style>

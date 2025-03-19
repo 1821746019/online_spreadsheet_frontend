@@ -4,15 +4,13 @@ import { ref, computed } from 'vue'
 // stores/schedule.js
 import { emitCourseUpdate } from '../utils/socket' // 修改为具名导入
 
-// ...原有代码...
-
 export const useScheduleStore = defineStore('schedule', () => {
   const timetable = ref([
     {
       id: 'mon-9am',
       day: 'Monday',
-      start: '09:00',
-      end: '10:30',
+      start: '08:00',
+      end: '10:00',
       course: '数学',
       teacher: '张老师',
       room: 'A201',
@@ -44,6 +42,7 @@ export const useScheduleStore = defineStore('schedule', () => {
         lastUpdatedBy: currentUser.value.id
       }
       checkConflicts(updatedCourse)
+      emitCourseUpdate(updatedCourse) // 确保触发网络同步
     }
   }
 
@@ -56,11 +55,22 @@ export const useScheduleStore = defineStore('schedule', () => {
     })
   }
 
+
+  function removeCourse(courseId) {
+    const index = timetable.value.findIndex(c => c.id === courseId)
+    if (index > -1) {
+      const removed = timetable.value.splice(index, 1)
+      // 触发网络同步
+      emitCourseUpdate({ ...removed[0], _deleted: true })
+    }
+  }
+
   return {
     timetable,
     collaborators,
     currentUser,
     groupedTimetable,
-    updateCourse
+    updateCourse,
+    removeCourse
   }
 })
