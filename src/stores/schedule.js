@@ -9,8 +9,8 @@ export const useScheduleStore = defineStore('schedule', () => {
     {
       id: 'mon-9am',
       day: 'Monday',
-      start: '08:00',
-      end: '10:00',
+      start: '08:30',
+      end: '9:10',
       course: '数学',
       teacher: '张老师',
       room: 'A201',
@@ -27,7 +27,7 @@ export const useScheduleStore = defineStore('schedule', () => {
 
   // 计算属性：按天分组
   const groupedTimetable = computed(() => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday','Saturday','Sunday']
     return days.map(day => ({
       day,
       courses: timetable.value.filter(c => c.day === day)

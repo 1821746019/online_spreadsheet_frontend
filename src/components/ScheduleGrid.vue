@@ -51,12 +51,12 @@
           <input v-model="editingCourse.room" type="text">
         </div>
         <div class="form-group">
-          <label>开始时间</label>
-          <input v-model="editingCourse.start" type="text" >
+          <label>起始时间</label>
+          <input v-model="editingCourse.start" type="text">
         </div>
         <div class="form-group">
           <label>结束时间</label>
-          <input v-model="editingCourse.end" type="text" >
+          <input v-model="editingCourse.end" type="text">
         </div>
         <div class="button-group">
           <button @click="showEditDialog = false" class="save-btn">取消</button>
@@ -80,6 +80,27 @@ const emit = defineEmits(['courseMoved'])
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const realtime = ['8:30-9:10', '9:15-9:55', '10:15-10:55', '11:00-11:40', '14:00-14:40', '14:45-15:25', '15:45-16:25', '16:30-17:10', '19:00-20:20', '20:30-21:50']
+const realtimeTimes = realtime.map(time => {
+  const [start, end] = time.split('-')
+  const [startHour, startMinute] = start.split(':').map(Number)
+  const [endHour, endMinute] = end.split(':').map(Number)
+  return {
+    start: startHour * 60 + startMinute,
+    end: endHour * 60 + endMinute
+  }
+})
+
+// 时间转换工具函数
+const convertTimeToMinutes = timeStr => {
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+const convertMinutesToTime = minutes => {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return `${hours}:${mins.toString().padStart(2, '0')}`
+}
 const dayMap = {
   Monday: '周一',
   Tuesday: '周二',
@@ -102,41 +123,51 @@ function handleDrop(e, day) {
   const courseId = e.dataTransfer.getData('courseId')
   const targetColumn = e.currentTarget
   const rect = targetColumn.getBoundingClientRect()
-
-  // 计算垂直位置
   const mouseY = e.clientY - rect.top
-  const hourOffset = Math.floor(mouseY / 80)  // 关键修改点：使用80px高度计算
-  const startHour = 8 + hourOffset
 
-  // 获取课程持续时间
-  const originalCourse = store.timetable.find(c => c.id === courseId)
-  const duration = parseInt(originalCourse.end.split(':')[0]) - parseInt(originalCourse.start.split(':')[0])
-
-  // 边界检查（8:00 - 17:00）
-  if (startHour < 8 || (startHour + duration) > 18) {
+  // 计算目标时间槽
+  const slotIndex = Math.floor(mouseY / 80)
+  if (slotIndex < 0 || slotIndex >= realtimeTimes.length) {
     console.warn('超出时间范围')
     return
   }
 
+  const originalCourse = store.timetable.find(c => c.id === courseId)
+  if (!originalCourse) return
+
+  // 计算原课程占用的槽数
+  const originalStart = convertTimeToMinutes(originalCourse.start)
+  const originalSlotIndex = realtimeTimes.findIndex(t => t.start === originalStart)
+  const originalDuration = realtimeTimes
+    .slice(originalSlotIndex)
+    .findIndex(t => t.end === convertTimeToMinutes(originalCourse.end)) + 1
+
+  // 确定新位置
+  const newEndSlot = Math.min(slotIndex + originalDuration - 1, realtimeTimes.length - 1)
+
   const updatedCourse = {
     ...originalCourse,
     day,
-    start: `${startHour}:00`,
-    end: `${startHour + duration}:00`
+    start: convertMinutesToTime(realtimeTimes[slotIndex].start),
+    end: convertMinutesToTime(realtimeTimes[newEndSlot].end)
   }
 
   store.updateCourse(updatedCourse)
   emit('courseMoved', updatedCourse)
 }
-
 function getCourseStyle(course) {
-  const startHour = parseInt(course.start.split(':')[0])+parseInt(course.start.split(':')[1])/60
-  const duration = parseInt(course.end.split(':')[0])+ parseInt(course.end.split(':')[1])/60- startHour
+  const startMinutes = convertTimeToMinutes(course.start)
+  const endMinutes = convertTimeToMinutes(course.end)
+
+  // 找到对应时间槽
+  const slotIndex = realtimeTimes.findIndex(t => t.start === startMinutes)
+  const durationSlots = realtimeTimes.filter(t =>
+    t.start >= startMinutes && t.end <= endMinutes
+  ).length
+
   return {
-    '--hour': startHour - 8,
-    '--duration': duration,
-    top: `${(startHour - 8) * 80}px`, // 关键修改点：80px高度
-    height: `${duration * 70}px`       // 关键修改点：80px高度
+    top: `${slotIndex * 80}px`,
+    height: `${durationSlots * 60}px`
   }
 }
 
@@ -255,9 +286,8 @@ const handleDelete = () => {
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  top: calc(var(--hour) * 80px);
-  /* CSS变量计算 */
-  height: calc(var(--duration) * 80px);
+  top: calc(var(--slot-index) * 80px);
+  height: calc(var(--slot-duration) * 80px);
   /* CSS变量计算 */
 }
 
