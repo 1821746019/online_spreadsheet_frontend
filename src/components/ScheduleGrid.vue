@@ -7,7 +7,6 @@
         {{ dayMap[day] }}
       </div>
     </div>
-
     <div class="time-grid">
       <div class="time-column">
         <div v-for="time in realtime" :key="time" class="time-slot">
@@ -16,7 +15,7 @@
       </div>
 
       <div v-for="day in days" :key="day" class="day-column" @dragover.prevent @drop="handleDrop($event, day)">
-        <div v-for="time in timeSlots" :key="time" class="time-slot" :data-time="day + '-' + time"></div>
+        <div v-for="time in realtime" :key="time" class="time-slot" :data-time="day + '-' + time"></div>
 
         <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
           :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
@@ -27,6 +26,9 @@
             <div v-if="course.lastUpdatedBy" class="user-indicator"
               :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div>
           </div>
+
+
+
         </div>
       </div>
     </div>
@@ -36,11 +38,11 @@
 <script setup>
 import { useScheduleStore } from '../stores/schedule'
 
+
 const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const timeSlots = Array.from({ length: 10 }, (_, i) => `${i + 8}:00`)
 const realtime = ['8:30-9:10','9:15-9:55','10:15-10:55','11:00-11:40','14:00-14:40','14:45-15:25','15:45-16:25','16:30-17:10','19:00-20:20','20:30-21:50']
 const dayMap = {
   Monday: '周一',
@@ -98,7 +100,7 @@ function getCourseStyle(course) {
     '--hour': startHour - 8,
     '--duration': duration,
     top: `${(startHour - 8) * 80}px`, // 关键修改点：80px高度
-    height: `${duration * 80}px`       // 关键修改点：80px高度
+    height: `${duration * 60}px`       // 关键修改点：80px高度
   }
 }
 
@@ -231,6 +233,11 @@ function getUserColor(userId) {
   border: 2px solid #fff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+
+
+
+
 
 @keyframes pulse {
   0% { transform: scale(0.95); }

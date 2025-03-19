@@ -3,7 +3,7 @@
     <!-- 顶部导航栏 -->
     <nav class="app-header">
       <div class="header-content">
-        <h1 class="logo">在线协同排课系统</h1>
+        <h1 class="logo">多人在线表格编辑系统</h1>
         <div class="user-info">
           <span class="user-name">{{ currentUser.name }}</span>
           <span
@@ -13,23 +13,25 @@
         </div>
       </div>
     </nav>
-
+    <GlobalSidebar />
     <!-- 主内容区 -->
     <main class="app-main">
-      <EditorView />
+      <router-view ></router-view>
     </main>
 
     <!-- 全局提示 -->
     <div v-if="collaborators.length > 0" class="collaborators-hint">
       当前有 {{ collaborators.length }} 位协作者在线
     </div>
+
+
   </div>
 </template>
 
-<script setup>
+<script lang='ts' setup>
 import { storeToRefs } from 'pinia'
 import { useScheduleStore } from '@/stores/schedule'
-import EditorView from '@/views/EditorView.vue'
+import  GlobalSidebar from './components/SideBar.vue'
 
 const store = useScheduleStore()
 const { currentUser, collaborators } = storeToRefs(store)
@@ -42,10 +44,11 @@ const { currentUser, collaborators } = storeToRefs(store)
 }
 
 .app-header {
-  background: #2c3e50;
-  color: white;
+  background: #fff;
+  color: black;
   padding: 1rem 2rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-left: 200px;
 }
 
 .header-content {
@@ -81,6 +84,7 @@ const { currentUser, collaborators } = storeToRefs(store)
   max-width: 1800px;
   margin: 0 auto;
   width: 100%;
+  margin-left: 200px;
 }
 
 .collaborators-hint {
