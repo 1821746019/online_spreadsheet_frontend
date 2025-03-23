@@ -144,7 +144,6 @@ function handleDrop(e, day) {
 
   // 确定新位置
   const newEndSlot = Math.min(slotIndex + originalDuration - 1, realtimeTimes.length - 1)
-
   const updatedCourse = {
     ...originalCourse,
     day,
@@ -164,7 +163,6 @@ function getCourseStyle(course) {
   const durationSlots = realtimeTimes.filter(t =>
     t.start >= startMinutes && t.end <= endMinutes
   ).length
-
   return {
     top: `${slotIndex * 80}px`,
     height: `${durationSlots * 60}px`
@@ -288,6 +286,7 @@ const handleDelete = () => {
   overflow: hidden;
   top: calc(var(--slot-index) * 80px);
   height: calc(var(--slot-duration) * 80px);
+  min-height: 60px;
   /* CSS变量计算 */
 }
 
@@ -420,7 +419,7 @@ const handleDelete = () => {
 }
 
 .save-btn {
-  background-color: #2c3e50;
+  background-color: #67C23A;
   color: white;
   margin-left: 1rem;
   padding: 0.5rem 1rem;
@@ -429,7 +428,7 @@ const handleDelete = () => {
   cursor: pointer;
 }
 .cancel-btn {
-  background-color: green;
+  background-color: rgb(177.3, 179.4, 183.6);
   color: white;
   margin-left: 1rem;
   padding: 0.5rem 1rem;

@@ -39,8 +39,8 @@ function addNewCourse() {
   const newCourse = {
     id: crypto.randomUUID(),
     day: 'Monday',
-    start: '09:00',
-    end: '10:00',
+    start: '08:30',
+    end: '9:10',
     course: '新课程',
     teacher: '新老师',
     room: '未分配',

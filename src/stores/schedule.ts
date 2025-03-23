@@ -38,6 +38,7 @@ export const useScheduleStore = defineStore('schedule', () => {
   function updateCourse(updatedCourse) {
     const index = timetable.value.findIndex(c => c.id === updatedCourse.id)
     if (index > -1) {
+      console.log('sch',updatedCourse.end)
       timetable.value[index] = {
         ...updatedCourse,
         lastUpdatedBy: currentUser.value.id

@@ -9,10 +9,10 @@
     <el-table-column prop="room" label="room" width="180"/>
     <el-table-column fixed="right" label="Operations" min-width="120">
       <template #default>
-        <el-button link type="primary" size="small" @click="handleClick()">
-          Detail
-        </el-button>
         <el-button link type="primary" size="small">Edit</el-button>
+        <el-button link type="primary" size="small" @click="handleClick()">
+          Delete
+        </el-button>
       </template>
     </el-table-column>
   </el-table>
