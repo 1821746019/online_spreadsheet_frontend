@@ -15,8 +15,8 @@
 // 菜单配置项
 const menuItems = [
   { icon: "🏠", title: "首页", path: "/" },
-  { icon: "📂", title: "文档", path: "/docs" },
-  { icon: "⚙️", title: "设置", path: "/settings" }
+  { icon: "📂", title: "读取CSV表格", path: "/read" },
+  { icon: "⚙️", title: "表格", path: "/form" }
 ];
 </script>
 
@@ -26,7 +26,7 @@ const menuItems = [
   left: 0;
   top: 0;
   height: 100vh;
-  width: 200px;
+  width: 175px;
   background: #2c3e50;
   color: white;
   z-index: 1000;

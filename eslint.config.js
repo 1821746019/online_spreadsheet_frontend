@@ -22,9 +22,16 @@ export default [
       },
     },
   },
-
+  module.exports = {
+    parse: 'babel-eslint',
+    parserOptions: {
+      "ecmaVersion": 7,
+      "sourceType": "module"
+    }
+  },
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   ...oxlint.configs['flat/recommended'],
   skipFormatting,
 ]
+

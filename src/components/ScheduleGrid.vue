@@ -59,7 +59,7 @@
           <input v-model="editingCourse.end" type="text">
         </div>
         <div class="button-group">
-          <button @click="showEditDialog = false" class="save-btn">取消</button>
+          <button @click="showEditDialog = false" class="cancel-btn">取消</button>
           <button @click="handleDelete" class="delete-btn" v-if="editingCourse">
             删除课程
           </button>
@@ -208,7 +208,7 @@ const handleDelete = () => {
 <style scoped>
 .schedule-grid {
   padding: 20px;
-  max-width: 1600px;
+  max-width: 1500px;
   margin: 0 auto;
   background: #fff;
   border-radius: 8px;
@@ -421,6 +421,15 @@ const handleDelete = () => {
 
 .save-btn {
   background-color: #2c3e50;
+  color: white;
+  margin-left: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+.cancel-btn {
+  background-color: green;
   color: white;
   margin-left: 1rem;
   padding: 0.5rem 1rem;

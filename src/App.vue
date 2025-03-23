@@ -30,7 +30,7 @@
 
 <script lang='ts' setup>
 import { storeToRefs } from 'pinia'
-import { useScheduleStore } from '@/stores/schedule'
+import { useScheduleStore } from './stores/schedule'
 import  GlobalSidebar from './components/SideBar.vue'
 
 const store = useScheduleStore()
@@ -81,10 +81,10 @@ const { currentUser, collaborators } = storeToRefs(store)
 .app-main {
   flex: 1;
   padding: 2rem;
-  max-width: 1800px;
+  max-width: 1500px;
   margin: 0 auto;
   width: 100%;
-  margin-left: 200px;
+  margin-left: 175px;
 }
 
 .collaborators-hint {

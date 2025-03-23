@@ -14,7 +14,8 @@ export const useScheduleStore = defineStore('schedule', () => {
       course: '数学',
       teacher: '张老师',
       room: 'A201',
-      lastUpdatedBy: null
+      lastUpdatedBy: null,
+      hasConflict: false
     }
   ])
 
@@ -45,8 +46,18 @@ export const useScheduleStore = defineStore('schedule', () => {
       emitCourseUpdate(updatedCourse) // 确保触发网络同步
     }
   }
-
-  function checkConflicts(course) {
+  interface Course {
+    id: string;
+    day: string;
+    start: string;
+    end: string;
+    course: string;
+    teacher: string;
+    room: string;
+    lastUpdatedBy: any;
+    hasConflict?: boolean; // 添加可选属性
+  }
+  function checkConflicts(course:Course) {
     timetable.value.forEach(c => {
       c.hasConflict = c.day === course.day &&
         c.start === course.start &&
