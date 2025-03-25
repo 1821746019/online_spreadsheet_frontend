@@ -40,23 +40,23 @@
         <h3>编辑课程信息</h3>
         <div class="form-group">
           <label>课程名称</label>
-          <input v-model="editingCourse.course" type="text">
+          <el-input v-model="editingCourse.course" type="text"></el-input>
         </div>
         <div class="form-group">
           <label>授课教师</label>
-          <input v-model="editingCourse.teacher" type="text">
+          <el-input v-model="editingCourse.teacher" type="text"></el-input>
         </div>
         <div class="form-group">
           <label>教室</label>
-          <input v-model="editingCourse.room" type="text">
+          <el-input v-model="editingCourse.room" type="text"></el-input>
         </div>
         <div class="form-group">
           <label>起始时间</label>
-          <input v-model="editingCourse.start" type="text">
+          <el-input v-model="editingCourse.start" type="text"></el-input>
         </div>
         <div class="form-group">
           <label>结束时间</label>
-          <input v-model="editingCourse.end" type="text">
+          <el-input v-model="editingCourse.end" type="text"></el-input>
         </div>
         <div class="button-group">
           <button @click="showEditDialog = false" class="cancel-btn">取消</button>
@@ -73,6 +73,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
+import { ElInput } from 'element-plus'
 
 
 const store = useScheduleStore()
