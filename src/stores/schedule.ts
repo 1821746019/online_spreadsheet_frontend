@@ -41,8 +41,8 @@ export const useScheduleStore = defineStore('schedule', () => {
 
   // 初始化空课表
   async function fetchTimetable(week: number) {
-    timetable.value = timetable.value.filter(c => c.week !== week) // 保留其他周次数据
     currentWeek.value = week
+    // 保留所有周次数据，仅切换当前显示的周次
   }
 
   // 计算属性：按天分组
@@ -63,7 +63,7 @@ export const useScheduleStore = defineStore('schedule', () => {
     if (index > -1) {
       timetable.value[index] = {
         ...updatedCourse,
-        lastUpdatedBy: currentUser.value.id,
+        lastUpdatedBy: currentUser.value.name,
         week: updatedCourse.week || currentWeek.value // 保留传入的week或使用当前周次
       }
       checkConflicts(updatedCourse)
@@ -72,7 +72,7 @@ export const useScheduleStore = defineStore('schedule', () => {
       // 如果是新课程，添加到timetable
       timetable.value.push({
         ...updatedCourse,
-        lastUpdatedBy: currentUser.value.id,
+        lastUpdatedBy: currentUser.value.name,
         week: updatedCourse.week || currentWeek.value
       })
       checkConflicts(updatedCourse)
