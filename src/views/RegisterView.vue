@@ -1,52 +1,82 @@
 <template>
   <div class="register-container">
-    <h1>注册</h1>
-    <form @submit.prevent="handleRegister">
-      <div class="form-group">
-        <label for="username">用户名</label>
-        <input
-          v-model="username"
-          type="text"
-          id="username"
-          required
-        />
+    <div class="register-card">
+      <div class="register-header">
+        <h1>创建账户</h1>
+        <p>加入我们，开始您的旅程</p>
       </div>
-      <div class="form-group">
-        <label for="email">邮箱</label>
-        <input
-          v-model="email"
-          type="email"
-          id="email"
-          required
-        />
-      </div>
-      <div class="form-group">
-        <label for="password">密码</label>
-        <input
-          v-model="password"
-          type="password"
-          id="password"
-          required
-        />
-      </div>
-      <div class="form-group">
-        <label for="confirmPassword">确认密码</label>
-        <input
-          v-model="confirmPassword"
-          type="password"
-          id="confirmPassword"
-          required
-        />
-      </div>
-      <button type="submit" :disabled="loading">
-        {{ loading ? '注册中...' : '注册' }}
-      </button>
-      <p class="login-link">
-        已有账号? <router-link to="/login">立即登录</router-link>
-      </p>
-      <p v-if="error" class="error-message">{{ error }}</p>
-      <p v-if="success" class="success-message">注册成功! 请登录</p>
-    </form>
+
+      <form @submit.prevent="handleRegister" class="register-form">
+        <div class="form-group">
+          <input
+            v-model="username"
+            type="text"
+            id="username"
+            required
+            placeholder=" "
+            class="form-input"
+          />
+          <label for="username" class="form-label">用户名</label>
+          <div class="form-underline"></div>
+        </div>
+
+        <div class="form-group">
+          <input
+            v-model="email"
+            type="email"
+            id="email"
+            required
+            placeholder=" "
+            class="form-input"
+          />
+          <label for="email" class="form-label">邮箱</label>
+          <div class="form-underline"></div>
+        </div>
+
+        <div class="form-group">
+          <input
+            v-model="password"
+            type="password"
+            id="password"
+            required
+            placeholder=" "
+            class="form-input"
+          />
+          <label for="password" class="form-label">密码</label>
+          <div class="form-underline"></div>
+        </div>
+
+        <div class="form-group">
+          <input
+            v-model="confirmPassword"
+            type="password"
+            id="confirmPassword"
+            required
+            placeholder=" "
+            class="form-input"
+          />
+          <label for="confirmPassword" class="form-label">确认密码</label>
+          <div class="form-underline"></div>
+        </div>
+
+        <button type="submit" :disabled="loading" class="register-button">
+          <span v-if="!loading">注 册</span>
+          <span v-else class="loading-dots">
+            <span class="dot">.</span>
+            <span class="dot">.</span>
+            <span class="dot">.</span>
+          </span>
+        </button>
+
+        <div class="register-footer">
+          <p v-if="error" class="error-message">{{ error }}</p>
+          <p v-if="success" class="success-message">注册成功! 正在跳转登录...</p>
+          <p class="login-link">
+            已有账号? <router-link to="/login" class="login-text">立即登录</router-link>
+          </p>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -89,43 +119,213 @@ const handleRegister = async () => {
 
 <style scoped>
 .register-container {
-  max-width: 400px;
-  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
 }
+
+.register-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  transform: translateY(0);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.register-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.register-header h1 {
+  color: #2d3748;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.register-header p {
+  color: #718096;
+  font-size: 14px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .form-group {
-  margin-bottom: 15px;
+  position: relative;
+  margin-bottom: 8px;
 }
-label {
-  display: block;
-  margin-bottom: 5px;
-}
-input {
+
+.form-input {
   width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
+  padding: 12px 0;
+  font-size: 16px;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: transparent;
+  outline: none;
+  transition: all 0.3s ease;
 }
-button {
+
+.form-input:focus {
+  border-bottom-color: transparent;
+}
+
+.form-input:focus + .form-label,
+.form-input:not(:placeholder-shown) + .form-label {
+  transform: translateY(-24px) scale(0.85);
+  color: #667eea;
+}
+
+.form-label {
+  position: absolute;
+  left: 0;
+  top: 12px;
+  color: #718096;
+  font-size: 16px;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  transform-origin: left top;
+}
+
+.form-underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transition: width 0.3s ease;
+}
+
+.form-input:focus ~ .form-underline {
   width: 100%;
-  padding: 10px;
-  background-color: #42b983;
+}
+
+.register-button {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 16px;
+  overflow: hidden;
+  position: relative;
 }
-button:disabled {
-  background-color: #cccccc;
+
+.register-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
 }
-.error-message {
-  color: red;
-  margin-top: 10px;
+
+.register-button:active:not(:disabled) {
+  transform: translateY(0);
 }
-.success-message {
-  color: green;
-  margin-top: 10px;
+
+.register-button:disabled {
+  background: #e2e8f0;
+  cursor: not-allowed;
+  box-shadow: none;
 }
-.login-link {
-  margin-top: 15px;
+
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.dot {
+  animation: bounce 1.4s infinite ease-in-out;
+  font-size: 24px;
+  line-height: 0;
+}
+
+.dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+}
+
+.register-footer {
   text-align: center;
+  margin-top: 16px;
+}
+
+.error-message {
+  color: #e53e3e;
+  font-size: 14px;
+  margin-bottom: 12px;
+  animation: shake 0.5s ease-in-out;
+}
+
+.success-message {
+  color: #38a169;
+  font-size: 14px;
+  margin-bottom: 12px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-link {
+  color: #718096;
+  font-size: 14px;
+}
+
+.login-text {
+  color: #667eea;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-text:hover {
+  color: #764ba2;
+  text-decoration: underline;
 }
 </style>
