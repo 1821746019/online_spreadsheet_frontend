@@ -46,6 +46,7 @@ function addNewCourse() {
     course: '新课程',
     teacher: '新老师',
     room: '未分配',
+    week: store.currentWeek,
     lastUpdatedBy: store.currentUser.id
   }
   store.timetable.push(newCourse)

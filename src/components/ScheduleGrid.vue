@@ -1,8 +1,17 @@
-<!-- components/ScheduleGrid.vue -->
 <template>
+  <div class="week-selector">
+    <el-select v-model="currentWeek" placeholder="选择周次" @change="handleWeekChange">
+      <el-option
+        v-for="week in 20"
+        :key="week"
+        :label="`第 ${week} 周`"
+        :value="week"
+      />
+    </el-select>
+  </div>
   <div class="schedule-grid">
     <div class="header-row">
-      <div class="day-header" style="background-color:black">时间</div>
+      <div class="time-header" style="background-color: #2d3748">时间</div>
       <div v-for="day in days" :key="day" class="day-header">
         {{ dayMap[day] }}
       </div>
@@ -26,44 +35,46 @@
             <div v-if="course.lastUpdatedBy" class="user-indicator"
               :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div>
           </div>
-
-
-
         </div>
       </div>
     </div>
   </div>
-  <!-- 编辑层 -->
+
+  <!-- 编辑模态框 -->
   <teleport to="body">
     <div v-if="showEditDialog" class="edit-modal">
-      <div class="modal-content">
-        <h3>编辑课程信息</h3>
+      <div class="modal-card">
+        <h3 class="modal-title">编辑课程信息</h3>
         <div class="form-group">
           <label>课程名称</label>
-          <el-input v-model="editingCourse.course" type="text"></el-input>
+          <el-input v-model="editingCourse.course" type="text" class="modern-input"></el-input>
         </div>
         <div class="form-group">
           <label>授课教师</label>
-          <el-input v-model="editingCourse.teacher" type="text"></el-input>
+          <el-input v-model="editingCourse.teacher" type="text" class="modern-input"></el-input>
         </div>
         <div class="form-group">
           <label>教室</label>
-          <el-input v-model="editingCourse.room" type="text"></el-input>
+          <el-input v-model="editingCourse.room" type="text" class="modern-input"></el-input>
         </div>
         <div class="form-group">
           <label>起始时间</label>
-          <el-input v-model="editingCourse.start" type="text"></el-input>
+          <el-input v-model="editingCourse.start" type="text" class="modern-input"></el-input>
         </div>
         <div class="form-group">
           <label>结束时间</label>
-          <el-input v-model="editingCourse.end" type="text"></el-input>
+          <el-input v-model="editingCourse.end" type="text" class="modern-input"></el-input>
         </div>
         <div class="button-group">
-          <button @click="showEditDialog = false" class="cancel-btn">取消</button>
-          <button @click="handleDelete" class="delete-btn" v-if="editingCourse">
-            删除课程
+          <button @click="showEditDialog = false" class="cancel-btn">
+            <span>取消</span>
           </button>
-          <button @click="saveCourse" class="save-btn">保存</button>
+          <button @click="handleDelete" class="delete-btn" v-if="editingCourse">
+            <span>删除课程</span>
+          </button>
+          <button @click="saveCourse" class="save-btn">
+            <span>保存</span>
+          </button>
         </div>
       </div>
     </div>
@@ -71,13 +82,22 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 import { ElInput } from 'element-plus'
 
-
 const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
+const currentWeek = ref(store.currentWeek)
+
+// 监听store.currentWeek变化
+watch(() => store.currentWeek, (newWeek) => {
+  currentWeek.value = newWeek
+})
+
+function handleWeekChange(week) {
+  store.fetchTimetable(week)
+}
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const realtime = ['8:30-9:10', '9:15-9:55', '10:15-10:55', '11:00-11:40', '14:00-14:40', '14:45-15:25', '15:45-16:25', '16:30-17:10', '19:00-20:20', '20:30-21:50']
@@ -113,7 +133,10 @@ const dayMap = {
 }
 
 function getCoursesByDay(day) {
-  return store.timetable.filter(c => c.day === day)
+  return store.timetable.filter(c => {
+    // 严格匹配当前周次和日期
+    return c.day === day && c.week === store.currentWeek
+  })
 }
 
 function handleDragStart(e, course) {
@@ -149,7 +172,8 @@ function handleDrop(e, day) {
     ...originalCourse,
     day,
     start: convertMinutesToTime(realtimeTimes[slotIndex].start),
-    end: convertMinutesToTime(realtimeTimes[newEndSlot].end)
+    end: convertMinutesToTime(realtimeTimes[newEndSlot].end),
+    week: originalCourse.week || store.currentWeek // 保留原周次或使用当前周次
   }
 
   store.updateCourse(updatedCourse)
@@ -185,14 +209,27 @@ const showEditDialog = ref(false)
 
 // 双击事件处理
 function handleDblClick(course) {
-  editingCourse.value = JSON.parse(JSON.stringify(course)) // 深拷贝避免污染原始数据
+  editingCourse.value = {
+    day: 'Monday',
+    start: '8:30',
+    end: '9:10',
+    week: store.currentWeek,
+    ...(course ? JSON.parse(JSON.stringify(course)) : {}),
+    id: course?.id || crypto.randomUUID()
+  }
   showEditDialog.value = true
 }
 
 // 保存修改
 function saveCourse() {
   if (editingCourse.value) {
-    store.updateCourse(editingCourse.value)
+    const courseToSave = {
+      ...editingCourse.value,
+      week: store.currentWeek, // 强制使用当前周次
+      id: editingCourse.value.id,
+      day: editingCourse.value.day || 'Monday'
+    }
+    store.updateCourse(courseToSave)
     showEditDialog.value = false
   }
 }
@@ -205,13 +242,20 @@ const handleDelete = () => {
 </script>
 
 <style scoped>
+.week-selector {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
 .schedule-grid {
   padding: 20px;
   max-width: 1500px;
   margin: 0 auto;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
 
 .header-row {
@@ -219,25 +263,29 @@ const handleDelete = () => {
   grid-template-columns: 100px repeat(7, 1fr);
   gap: 1px;
   margin-bottom: 1px;
-  background: #f0f0f0;
+  background: #f8fafc;
 }
 
-.day-header {
-  background: #2c3e50;
+.time-header, .day-header {
+  background: #2d3748;
   color: white;
-  padding: 15px 15px;
+  padding: 15px 10px;
   text-align: center;
   font-weight: 600;
   font-size: 0.95em;
-  border-right: 1px solid #fff;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.time-header {
+  background: #1a202c;
 }
 
 .time-grid {
   display: grid;
   grid-template-columns: 100px repeat(7, 1fr);
   gap: 1px;
-  background: #f8f9fa;
-  border: 1px solid #eee;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
 }
 
 .time-column {
@@ -246,61 +294,58 @@ const handleDelete = () => {
   z-index: 2;
   background: #fff;
   white-space: nowrap;
-  font-size: 0.7em;
-  border-right: 1px solid #eee;
+  font-size: 0.8em;
+  border-right: 1px solid #e2e8f0;
 }
 
 .time-slot {
   height: 80px;
-  /* 关键高度设置 */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9em;
-  color: #666;
-  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.85em;
+  color: #4a5568;
+  border-bottom: 1px solid #e2e8f0;
   background: #fff;
 }
 
 .day-column {
   position: relative;
   min-height: 800px;
-  /* 10小时*80px */
   background: #fff;
-  border-right: 1px solid #eee;
-  background-image: linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
+  border-right: 1px solid #e2e8f0;
+  background-image: linear-gradient(to bottom, #edf2f7 1px, transparent 1px);
   background-size: 100% 80px;
-  /* 关键修改：匹配80px高度 */
 }
 
 .course-block {
   position: absolute;
   left: 4px;
   right: 4px;
-  background: #e8f5e9;
-  border: 2px solid #81c784;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #ebf4ff 0%, #c3dafe 100%);
+  border: 2px solid #90cdf4;
+  border-radius: 8px;
   padding: 10px;
   cursor: move;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   top: calc(var(--slot-index) * 80px);
   height: calc(var(--slot-duration) * 80px);
   min-height: 60px;
-  /* CSS变量计算 */
 }
 
 .course-block:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  border-color: #63b3ed;
 }
 
 .course-block.conflict {
-  background: #ffcdd2;
-  border-color: #e53935;
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border-color: #fc8181;
   z-index: 1;
-  animation: pulse 1s infinite;
+  animation: pulse 1.5s infinite;
 }
 
 .course-content {
@@ -313,12 +358,12 @@ const handleDelete = () => {
   font-weight: 600;
   font-size: 0.95em;
   margin-bottom: 4px;
-  color: #2c3e50;
+  color: #2d3748;
 }
 
 .course-info {
   font-size: 0.85em;
-  color: #666;
+  color: #4a5568;
   line-height: 1.4;
   flex-grow: 1;
 }
@@ -327,29 +372,138 @@ const handleDelete = () => {
   position: absolute;
   bottom: 6px;
   right: 6px;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
   border: 2px solid #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-
-
-
-
-
 
 @keyframes pulse {
   0% {
-    transform: scale(0.95);
+    transform: scale(0.98);
+    box-shadow: 0 0 0 0 rgba(252, 129, 129, 0.4);
   }
-
-  50% {
-    transform: scale(1.05);
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(252, 129, 129, 0);
   }
-
   100% {
-    transform: scale(0.95);
+    transform: scale(0.98);
+    box-shadow: 0 0 0 0 rgba(252, 129, 129, 0);
   }
+}
+
+/* 编辑模态框样式 */
+.edit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 420px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.modal-title {
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #4a5568;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.modern-input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+}
+
+.modern-input:hover {
+  border-color: #cbd5e0;
+}
+
+.modern-input:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.button-group {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.save-btn, .cancel-btn, .delete-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(72, 187, 120, 0.3);
+}
+
+.cancel-btn {
+  background: #edf2f7;
+  color: #4a5568;
+}
+
+.cancel-btn:hover {
+  background: #e2e8f0;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+  color: white;
+  margin-right: auto;
+}
+
+.delete-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(245, 101, 101, 0.3);
 }
 
 @media (max-width: 1600px) {
@@ -373,85 +527,19 @@ const handleDelete = () => {
   }
 }
 
+@media (max-width: 768px) {
+  .modal-card {
+    width: 90%;
+    padding: 1.5rem;
+  }
 
+  .button-group {
+    flex-wrap: wrap;
+  }
 
-/* 新增编辑模态框样式 */
-.edit-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  .save-btn, .cancel-btn, .delete-btn {
+    flex: 1;
+    justify-content: center;
+  }
 }
-
-.modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  width: 400px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #2c3e50;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.button-group {
-  margin-top: 1.5rem;
-  text-align: right;
-}
-
-.save-btn {
-  background-color: #67C23A;
-  color: white;
-  margin-left: 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-}
-.cancel-btn {
-  background-color: rgb(177.3, 179.4, 183.6);
-  color: white;
-  margin-left: 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-}
-
-
-.delete-btn {
-  background-color: #ff4444;
-  color: white;
-  margin-left: 1rem;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.delete-btn:hover {
-  background-color: #cc0000;
-}
-
 </style>
