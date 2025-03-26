@@ -5,7 +5,7 @@
       <div class="header-content">
         <h1 class="logo">多人在线表格编辑系统</h1>
         <div class="user-info">
-          <span class="user-name">{{ auth.$state.user?.username }}</span>
+          <span class="user-name">{{ currentUser.name }}</span>
           <span
             class="user-color-indicator"
             :style="{ backgroundColor: currentUser.color }"
@@ -30,10 +30,9 @@
 
 <script lang='ts' setup>
 import { storeToRefs } from 'pinia'
-import { useScheduleStore } from './stores/schedule'
-import  GlobalSidebar from './components/SideBar.vue'
-import { useAuthStore } from './stores/auth'
-const auth=useAuthStore()
+import { useScheduleStore } from '../stores/schedule'
+import  GlobalSidebar from '../components/SideBar.vue'
+
 const store = useScheduleStore()
 const { currentUser, collaborators } = storeToRefs(store)
 </script>

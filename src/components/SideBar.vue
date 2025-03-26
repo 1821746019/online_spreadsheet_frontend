@@ -7,16 +7,27 @@
         <span class="icon">{{ item.icon }}</span>
         <span class="title">{{ item.title }}</span>
       </router-link>
+      <button @click="handleLogout" >
+        退出登录
+    </button>
     </nav>
   </aside>
 </template>
 
 <script setup>
+import { useAuthStore } from '@/stores/auth';
+
+const authStore = useAuthStore();
+
+const handleLogout = () => {
+  authStore.logout();
+};
 // 菜单配置项
 const menuItems = [
   { icon: "🏠", title: "首页", path: "/" },
   { icon: "📂", title: "读取CSV表格", path: "/read" },
-  { icon: "⚙️", title: "表格", path: "/form" }
+  { icon: "⚙️", title: "表格", path: "/form" },
+  { icon: "⚙️", title: "登录", path: "/login" }
 ];
 </script>
 

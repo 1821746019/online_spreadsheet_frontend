@@ -7,7 +7,7 @@
     <div class="toolbar">
       <button @click="addNewCourse" class="feat-btn">添加课程</button>
       <div class="current-user">
-        当前用户: {{ store.currentUser.name }}
+        当前用户: {{ auth.$state.user?.username }}
         <span class="color-indicator" :style="{ backgroundColor: store.currentUser.color }"></span>
       </div>
     </div>
@@ -30,6 +30,8 @@ import ScheduleGrid from '../components/ScheduleGrid.vue'
 import { emitCourseUpdate } from '../utils/socket'
 import ReadCSV from '@/components/ReadCSV.vue'
 import CommonForm from '@/components/commonForm.vue'
+import { useAuthStore } from '../stores/auth'
+const auth=useAuthStore()
 const store = useScheduleStore()
 function handleCourseMoved(course) {
   emitCourseUpdate(course)
