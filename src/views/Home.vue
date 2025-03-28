@@ -195,7 +195,7 @@ const getContrastColor = (hexColor: string) => {
 .app-main {
   flex: 1;
   padding: 2rem;
-  max-width: 1500px;
+  max-width: 1800px;
   margin: 0 auto;
   width: calc(100% - 220px);
   transition: width 0.3s ease, margin-left 0.3s ease;

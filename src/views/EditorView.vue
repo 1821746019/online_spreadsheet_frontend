@@ -1,8 +1,7 @@
 <!-- views/EditorView.vue -->
 <template>
   <div class="editor-view">
-    <ReadCSV></ReadCSV>
-  <CommonForm></CommonForm>
+    <CourseDataform></CourseDataform>
     <hr>
     <div class="toolbar">
       <button @click="addNewCourse" class="feat-btn">添加课程</button>
@@ -28,8 +27,8 @@ import { useScheduleStore } from '../stores/schedule'
 import ScheduleGrid from '../components/ScheduleGrid.vue'
 import { emitOperation } from '../utils/socket'
 import ReadCSV from '@/components/ReadCSV.vue'
-import CommonForm from '@/components/commonForm.vue'
 import { useAuthStore } from '../stores/auth'
+import CourseDataform from '../components/CourseDataform.vue'
 const auth=useAuthStore()
 const store = useScheduleStore()
 function handleCourseMoved(course) {

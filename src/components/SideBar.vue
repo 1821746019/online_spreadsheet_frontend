@@ -25,7 +25,8 @@
 const menuItems = [
   { icon: "🏠", title: "首页", path: "/home" },
   { icon: "📂", title: "读取CSV表格", path: "/read" },
-  { icon: "📊", title: "课程表格数据", path: "/form" },
+  { icon: "📊", title: "课程表格数据", path: "/course" },
+  { icon: "📊", title: "一般表格", path: "/form" },
 ];
 </script>
 
@@ -36,14 +37,15 @@ const menuItems = [
   top: 0;
   height: 100vh;
   width: 220px;
-  background: linear-gradient(180deg, #2c3e50 0%, #1a2530 100%);
-  color: white;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #2d3748;
   z-index: 1000;
-  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   padding: 20px 0;
+  border-right: 1px solid #cbd5e0;
 }
 
 .logo-container {
@@ -55,7 +57,7 @@ const menuItems = [
 .logo {
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #3a7bd5, #00d2ff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -64,7 +66,7 @@ const menuItems = [
 
 .logo-subtitle {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #718096;
   letter-spacing: 1px;
 }
 
@@ -81,7 +83,7 @@ const menuItems = [
   display: flex;
   align-items: center;
   padding: 12px 15px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #4a5568;
   text-decoration: none;
   border-radius: 8px;
   transition: all 0.3s ease;
@@ -89,14 +91,14 @@ const menuItems = [
 }
 
 .menu-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+  background: rgba(58, 123, 213, 0.1);
+  color: #2c5fb3;
   transform: translateX(5px);
 }
 
 .menu-item.active {
-  background: rgba(102, 126, 234, 0.2);
-  color: white;
+  background: rgba(58, 123, 213, 0.15);
+  color: #3a7bd5;
 }
 
 .menu-item.active .menu-highlight {
@@ -109,7 +111,7 @@ const menuItems = [
   top: 0;
   height: 100%;
   width: 0;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #3a7bd5, #00d2ff);
   transition: width 0.3s ease;
 }
 

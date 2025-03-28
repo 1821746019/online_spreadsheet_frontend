@@ -4,7 +4,7 @@
       <h1>多人在线表格编辑排课系统</h1>
       <p class="subtitle">现代化、高效的课程安排解决方案</p>
       <div class="cta-buttons">
-        <router-link to="/login" class="btn primary">登录</router-link>
+        <button @click="handleLogin" class="btn primary">登录</button>
         <router-link to="/register" class="btn secondary">注册</router-link>
       </div>
     </div>
@@ -23,9 +23,23 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import IconTooling from '@/components/icons/IconTooling.vue'
 import IconDocumentation from '@/components/icons/IconDocumentation.vue'
 import IconEcosystem from '@/components/icons/IconEcosystem.vue'
+import { useAuthStore } from '../stores/auth'
+const router = useRouter()
+const authStore = useAuthStore()
+
+const handleLogin = () => {
+  if (authStore.isLoggedIn) {
+    ElMessage.info('您已登录，正在跳转到首页')
+    router.push('/home')
+  } else {
+    router.push('/login')
+  }
+}
 
 const features = ref([
   {
