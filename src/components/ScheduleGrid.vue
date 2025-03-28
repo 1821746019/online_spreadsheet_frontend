@@ -404,47 +404,82 @@ const handleDelete = () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* 改为顶部对齐 */
+  padding-top: 40px; /* 添加顶部内边距 */
+  padding-bottom: 40px; /* 添加底部内边距 */
+  overflow-y: auto; /* 允许垂直滚动 */
   z-index: 1000;
   backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
 }
 
 .modal-card {
   background: white;
   padding: 2rem;
-  border-radius: 12px;
-  width: 420px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  width: 440px;
+  max-height: calc(100vh - 80px); /* 限制最大高度 */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   transform: translateY(0);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow-y: auto; /* 允许内容滚动 */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-title {
   color: #2d3748;
   margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 700;
   text-align: center;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.modal-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #4299e1, #48bb78);
+  border-radius: 3px;
 }
 
 .form-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  position: relative;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   color: #4a5568;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .modern-input {
   width: 100%;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 12px;
-  transition: all 0.2s ease;
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  background-color: #f8fafc;
+}
+
+.modern-input:focus {
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+  border-color: #4299e1;
 }
 
 .modern-input:hover {
@@ -457,23 +492,30 @@ const handleDelete = () => {
 }
 
 .button-group {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 16px;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding-top: 16px;
+  padding-bottom: 8px;
+  z-index: 1;
 }
 
 .save-btn, .cancel-btn, .delete-btn {
-  padding: 10px 18px;
-  border-radius: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-weight: 600;
+  font-size: 0.95rem;
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  gap: 8px;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
 }
 
 .save-btn {

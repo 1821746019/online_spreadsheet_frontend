@@ -23,10 +23,9 @@
 <script setup>
 // 菜单配置项
 const menuItems = [
-  { icon: "🏠", title: "首页", path: "/" },
+  { icon: "🏠", title: "首页", path: "/home" },
   { icon: "📂", title: "读取CSV表格", path: "/read" },
-  { icon: "📊", title: "表格", path: "/form" },
-  { icon: "🔑", title: "登录", path: "/login" }
+  { icon: "📊", title: "课程表格数据", path: "/form" },
 ];
 </script>
 

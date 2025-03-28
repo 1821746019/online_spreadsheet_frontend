@@ -13,7 +13,6 @@
     </div>
 
     <ScheduleGrid @courseMoved="handleCourseMoved" />
-    <button @click="saveForm" class="feat-btn">保存表格</button>
     <div class="collaborators">
       <h3>协作者:</h3>
       <div v-for="user in store.collaborators" :key="user.id" class="collaborator">
@@ -27,14 +26,20 @@
 <script setup name="EditorView">
 import { useScheduleStore } from '../stores/schedule'
 import ScheduleGrid from '../components/ScheduleGrid.vue'
-import { emitCourseUpdate } from '../utils/socket'
+import { emitOperation } from '../utils/socket'
 import ReadCSV from '@/components/ReadCSV.vue'
 import CommonForm from '@/components/commonForm.vue'
 import { useAuthStore } from '../stores/auth'
 const auth=useAuthStore()
 const store = useScheduleStore()
 function handleCourseMoved(course) {
-  emitCourseUpdate(course)
+  emitOperation({
+    type: 'update',
+    data: course,
+    version: Date.now(),
+    timestamp: Date.now(),
+    userId: store.currentUser.id
+  })
 }
 
 function addNewCourse() {
@@ -50,7 +55,13 @@ function addNewCourse() {
     lastUpdatedBy: store.currentUser.id
   }
   store.timetable.push(newCourse)
-  emitCourseUpdate(newCourse)
+  emitOperation({
+    type: 'insert',
+    data: newCourse,
+    version: Date.now(),
+    timestamp: Date.now(),
+    userId: store.currentUser.id
+  })
 }
 </script>
 

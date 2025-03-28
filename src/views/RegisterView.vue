@@ -4,6 +4,7 @@
       <div class="register-header">
         <h1>创建账户</h1>
         <p>加入我们，开始您的旅程</p>
+        <p><router-link to="/">回到首页</router-link></p>
       </div>
 
       <form @submit.prevent="handleRegister" class="register-form">
@@ -123,24 +124,22 @@ const handleRegister = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 2rem;
 }
 
 .register-card {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 420px;
-  padding: 40px;
-  transform: translateY(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  padding: 2rem;
+  transition: transform 0.3s ease;
 }
 
 .register-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
 }
 
 .register-header {
@@ -218,24 +217,22 @@ const handleRegister = async () => {
 }
 
 .register-button {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #3a7bd5, #00d2ff);
   color: white;
   border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-top: 16px;
-  overflow: hidden;
-  position: relative;
+  margin-top: 1rem;
+  width: 100%;
 }
 
 .register-button:hover:not(:disabled) {
+  background-color: #2c5fb3;
   transform: translateY(-2px);
-  box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
 }
 
 .register-button:active:not(:disabled) {
@@ -318,14 +315,14 @@ const handleRegister = async () => {
 }
 
 .login-text {
-  color: #667eea;
+  color: #3a7bd5;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .login-text:hover {
-  color: #764ba2;
+  color: #2c5fb3;
   text-decoration: underline;
 }
 </style>

@@ -4,6 +4,7 @@
       <div class="login-header">
         <h1>欢迎回来</h1>
         <p>请登录您的账户</p>
+        <p><router-link to="/">回到首页</router-link></p>
       </div>
 
       <form @submit.prevent="handleLogin" class="login-form">
@@ -70,7 +71,7 @@ const handleLogin = async () => {
     loading.value = true;
     error.value = '';
     await authStore.login(username.value, password.value);
-    router.push('/');
+    router.push('/home');
   } catch (err: any) {
     error.value = err.message || '登录失败，请检查用户名和密码';
   } finally {
@@ -85,25 +86,22 @@ const handleLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-  border-radius: 10px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 2rem;
 }
 
 .login-card {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 420px;
-  padding: 40px;
-  transform: translateY(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  padding: 2rem;
+  transition: transform 0.3s ease;
 }
 
 .login-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
 }
 
 .login-header {
@@ -181,24 +179,22 @@ const handleLogin = async () => {
 }
 
 .login-button {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #3a7bd5, #00d2ff);
   color: white;
   border: none;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-top: 16px;
-  overflow: hidden;
-  position: relative;
+  margin-top: 1rem;
+  width: 100%;
 }
 
 .login-button:hover:not(:disabled) {
+  background-color: #2c5fb3;
   transform: translateY(-2px);
-  box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
 }
 
 .login-button:active:not(:disabled) {
@@ -269,14 +265,14 @@ const handleLogin = async () => {
 }
 
 .register-text {
-  color: #667eea;
+  color: #3a7bd5;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .register-text:hover {
-  color: #764ba2;
+  color: #2c5fb3;
   text-decoration: underline;
 }
 </style>

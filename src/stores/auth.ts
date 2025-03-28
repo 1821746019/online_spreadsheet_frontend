@@ -53,13 +53,13 @@ export const useAuthStore = defineStore('auth', {
       this.user = null;
       this.isAuthenticated = false;
       localStorage.removeItem('token');
-      const router = useRouter();
-      router.push('/login');
+      return '/login'; // 返回登录页路径
     },
 
     // 初始化时从localStorage恢复登录状态
     initialize() {
       const token = localStorage.getItem('token');
+      const user=localStorage.getItem('user')
       if (token) {
         this.token = token;
         this.isAuthenticated = true;

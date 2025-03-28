@@ -5,25 +5,40 @@ import CommonForm from '../components/commonForm.vue'
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue'
 import { useAuthStore } from '../stores/auth';
-import IndexView from '../views/IndexView.vue';
+import LandingPage from '../views/LandingPage.vue';
+import Home from '../views/Home.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
+      path: '/home',
       name: 'home',
-      component: EditorView,
+      component:Home,
+      children:[
+        {
+          path:'',
+          name:'editor',
+          component:EditorView,
+        },
+        {
+              path: '/read',
+              name: 'read',
+              component:  ReadCSV,
+            },
+            {
+              path: '/form',
+              name: 'form',
+              component:  CommonForm,
+            },
+
+      ],
       meta: { requiresAuth: true }
     },
     {
-      path: '/read',
-      name: 'read',
-      component:  ReadCSV,
-    },
-    {
-      path: '/form',
-      name: 'form',
-      component:  CommonForm,
+      path: '/',
+      name: 'Page',
+      component: LandingPage,
+      meta: { requiresAuth: false }
     },
     {
       path: '/login',
