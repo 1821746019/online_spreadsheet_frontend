@@ -67,8 +67,7 @@ function addNewCourse() {
 <style scoped>
 .editor-view{
   flex: 1;
-  padding: 2rem;
-  max-width: 1500px;
+  max-width: 1800px;
   margin: 0 auto;
   width: 100%;
 }

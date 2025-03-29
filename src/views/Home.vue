@@ -197,9 +197,8 @@ const getContrastColor = (hexColor: string) => {
   padding: 2rem;
   max-width: 1800px;
   margin: 0 auto;
-  width: calc(100% - 220px);
   transition: width 0.3s ease, margin-left 0.3s ease;
-  margin-left: 220px;
+  margin-left: 200px;
 }
 
 .collaborators-hint {
