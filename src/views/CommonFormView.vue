@@ -12,6 +12,10 @@
       <button @click="deleteSelectedColumn" :disabled="!selectedColumn">删除列</button>
       <button @click="exportToCSV">导出CSV</button>
     </div>
+    <div class="action-buttons"">
+      <button @click="undo" :disabled="historyIndex < 0">撤销</button>
+      <button @click="redo" :disabled="historyIndex >= editHistory.length - 1">恢复</button>
+    </div>
 
     <!-- AG Grid表格 -->
     <div class="excel-table-container">
@@ -60,7 +64,7 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <div v-if="showEditDialog" class="edit-dialog">
+    <!-- <div v-if="showEditDialog" class="edit-dialog">
       <h3>{{ isEditing ? '编辑' : '新增' }}记录</h3>
       <form @submit.prevent="saveItem">
         <div v-for="header in tableHeaders" :key="header">
@@ -70,7 +74,7 @@
         <button type="submit">保存</button>
         <button type="button" @click="cancelEdit">取消</button>
       </form>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -129,27 +133,6 @@ const saveRowHeader = () => {
   }
 };
 
-// 删除选中列
-const deleteSelectedColumn = () => {
-  if (!selectedColumn.value) return;
-
-  const index = tableHeaders.value.indexOf(selectedColumn.value);
-  if (index !== -1) {
-    tableHeaders.value.splice(index, 1);
-    tableData.value.forEach(row => {
-      delete row[selectedColumn.value];
-    });
-    selectedColumn.value = null;
-
-    // 通知服务器数据更新
-    if (socket.value) {
-      socket.value.emit('table-update', {
-        rows: tableData.value,
-        activeCells: currentUsers.value
-      });
-    }
-  }
-};
 
 const showEditDialog = ref(false);
 const isEditing = ref(false);
@@ -162,6 +145,10 @@ const tableData = ref(Array.from({ length: 5 }, (_, i) => {
   });
   return row;
 }));
+
+// 编辑历史记录
+const editHistory = ref([]);
+const historyIndex = ref(-1);
 const csvImporter = ref(null);
 const socket = ref(null);
 const authStore = useAuthStore();
@@ -241,7 +228,7 @@ const onCellFocus = (rowIndex, header) => {
 
   // 初始化WebSocket连接
   if (!socket.value) {
-    socket.value = io('http://localhost:3000');
+    socket.value = io('http://10.161.229.242:5173');
     socket.value.on('table-update', (data) => {
       tableData.value = data.rows;
       currentUsers.value = data.activeCells;
@@ -272,6 +259,8 @@ const onCellFocus = (rowIndex, header) => {
 
 const onCellBlur = (rowIndex, header) => {
   const cellId = `${rowIndex}-${header}`;
+  const row = tableData.value[rowIndex];
+  const oldValue = row[header];
 
   // 通知服务器单元格编辑结束
   if (socket.value) {
@@ -281,6 +270,21 @@ const onCellBlur = (rowIndex, header) => {
       username: authStore.user?.username || 'Anonymous'
     });
   }
+
+  // 保存当前状态的快照
+  const snapshot = {
+    timestamp: new Date(),
+    description: `修改单元格 ${header}[${rowIndex}]`,
+    data: JSON.parse(JSON.stringify(tableData.value)),
+    headers: [...tableHeaders.value]
+  };
+
+  // 更新历史记录
+  if (historyIndex.value < editHistory.value.length - 1) {
+    editHistory.value = editHistory.value.slice(0, historyIndex.value + 1);
+  }
+  editHistory.value.push(snapshot);
+  historyIndex.value = editHistory.value.length - 1;
 
   // 重置textarea高度
   if (header !== '__rowNumber') {
@@ -292,9 +296,61 @@ const onCellBlur = (rowIndex, header) => {
   }
 };
 
-// 新增项目
+// 记录变更到历史
+const recordChange = (description) => {
+  // 如果当前不在历史记录的末尾，则丢弃后面的历史
+  if (historyIndex.value < editHistory.value.length - 1) {
+    editHistory.value = editHistory.value.slice(0, historyIndex.value + 1);
+  }
+
+  const snapshot = {
+    timestamp: new Date(),
+    description,
+    data: JSON.parse(JSON.stringify(tableData.value)),
+    headers: [...tableHeaders.value]
+  };
+
+  editHistory.value.push(snapshot);
+  historyIndex.value = editHistory.value.length - 1;
+};
+
+// 撤销操作
+const undo = () => {
+  if (historyIndex.value > 0) {
+    historyIndex.value--;
+    applyHistorySnapshot();
+  }
+};
+
+// 重做操作
+const redo = () => {
+  if (historyIndex.value < editHistory.value.length - 1) {
+    historyIndex.value++;
+    applyHistorySnapshot();
+  }
+};
+
+// 应用历史快照
+const applyHistorySnapshot = () => {
+  if (historyIndex.value < 0 || historyIndex.value >= editHistory.value.length) {
+    return;
+  }
+
+  const snapshot = editHistory.value[historyIndex.value];
+  tableData.value = JSON.parse(JSON.stringify(snapshot.data));
+  tableHeaders.value = [...snapshot.headers];
+
+  // 通知服务器数据更新
+  if (socket.value) {
+    socket.value.emit('table-update', {
+      rows: tableData.value,
+      activeCells: currentUsers.value
+    });
+  }
+};
+
+// 确保所有修改操作都调用recordChange
 const addNewItem = () => {
-  // 计算当前最大行号
   const maxRowNumber = Math.max(...tableData.value.map(row =>
     parseInt(row.__rowNumber) || 0
   ));
@@ -307,8 +363,8 @@ const addNewItem = () => {
     newItem[header] = '';
   });
   tableData.value.push(newItem);
+  recordChange(`新增行 ${newItem.__rowNumber}`);
 
-  // 通知服务器数据更新
   if (socket.value) {
     socket.value.emit('table-update', {
       rows: tableData.value,
@@ -317,22 +373,18 @@ const addNewItem = () => {
   }
 };
 
-// 新增列
 const addNewColumn = () => {
-  // 计算当前最大列号
   const maxColCode = Math.max(...tableHeaders.value.map(header =>
     header.charCodeAt(0)
   ));
   const newHeader = String.fromCharCode(maxColCode + 1);
 
   tableHeaders.value.push(newHeader);
-
-  // 为所有现有行添加新列
   tableData.value.forEach(row => {
     row[newHeader] = '';
   });
+  recordChange(`新增列 ${newHeader}`);
 
-  // 通知服务器数据更新
   if (socket.value) {
     socket.value.emit('table-update', {
       rows: tableData.value,
@@ -341,23 +393,61 @@ const addNewColumn = () => {
   }
 };
 
-// 删除项目
 const deleteItem = (index) => {
+  const deletedRow = tableData.value[index];
   tableData.value.splice(index, 1);
-  tableData.value = [...tableData.value];
+  recordChange(`删除行 ${deletedRow.__rowNumber}`);
+
+  if (socket.value) {
+    socket.value.emit('table-update', {
+      rows: tableData.value,
+      activeCells: currentUsers.value
+    });
+  }
+};
+
+const deleteSelectedColumn = () => {
+  if (!selectedColumn.value) return;
+
+  const index = tableHeaders.value.indexOf(selectedColumn.value);
+  if (index !== -1) {
+    const columnName = selectedColumn.value;
+    tableHeaders.value.splice(index, 1);
+    tableData.value.forEach(row => {
+      delete row[selectedColumn.value];
+    });
+    selectedColumn.value = null;
+    recordChange(`删除列 ${columnName}`);
+
+    if (socket.value) {
+      socket.value.emit('table-update', {
+        rows: tableData.value,
+        activeCells: currentUsers.value
+      });
+    }
+  }
 };
 
 // 导出CSV
 const exportToCSV = () => {
+  // 准备导出数据 - 过滤掉内部字段
+  const exportData = tableData.value.map(row => {
+    const exportedRow = {};
+    tableHeaders.value.forEach(header => {
+      exportedRow[header] = row[header] || '';
+    });
+    return exportedRow;
+  });
+
   const csv = Papa.unparse({
     fields: tableHeaders.value,
-    data: tableData.value
+    data: exportData
   });
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = 'export.csv';
+  link.download = `export_${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
 };
 </script>
@@ -498,6 +588,7 @@ const exportToCSV = () => {
 .excel-table td.editing {
   background-color: #fffde7;
   position: relative;
+  box-shadow: 0 0 0 2px #3a7bd5;
 }
 
 .excel-table td.editing::after {
@@ -506,7 +597,11 @@ const exportToCSV = () => {
   bottom: -15px;
   right: 0;
   font-size: 10px;
-  color: #666;
+  color: white;
+  background-color: #3a7bd5;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
 .action-buttons {

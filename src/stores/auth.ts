@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 interface User {
   username: string
   email?: string
+  color?: string
 }
 
 interface AuthState {

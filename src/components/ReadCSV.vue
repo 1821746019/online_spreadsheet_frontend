@@ -90,6 +90,12 @@ const handleDrop = (event) => {
 const parseCSV = (file) => {
   if (!file) return;
 
+  // 验证文件类型
+  if (!file.name.endsWith('.csv')) {
+    errorMessage.value = '请上传CSV格式文件';
+    return;
+  }
+
   // 重置状态
   isLoading.value = true;
   errorMessage.value = '';
@@ -99,12 +105,23 @@ const parseCSV = (file) => {
   Papa.parse(file, {
     header: true,          // 第一行为标题
     skipEmptyLines: true,  // 跳过空行
+    transformHeader: header => header.trim(), // 清理表头空格
+    transform: value => value ? value.trim() : '', // 清理数据空格
     complete: (results) => {
       if (results.errors.length) {
-        errorMessage.value = '文件解析错误，请检查格式';
+        errorMessage.value = '文件解析错误: ' +
+          results.errors.map(e => `${e.row}: ${e.message}`).join('; ');
+      } else if (!results.meta.fields || !results.data.length) {
+        errorMessage.value = '文件没有有效数据或表头';
       } else {
-        csvHeaders.value = results.meta.fields;
-        csvData.value = results.data;
+        // 验证表头有效性
+        const invalidHeaders = results.meta.fields.filter(h => !h || h.startsWith('__'));
+        if (invalidHeaders.length) {
+          errorMessage.value = `表头包含无效字段: ${invalidHeaders.join(', ')}`;
+        } else {
+          csvHeaders.value = results.meta.fields;
+          csvData.value = results.data;
+        }
       }
       isLoading.value = false;
       fileInput.value.value = '';

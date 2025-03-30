@@ -10,13 +10,12 @@
         <div class="user-info">
           <template v-if="auth.$state.token">
             <span class="user-name">{{ auth.$state.user?.username }}</span>
-            <span
-              class="user-color-indicator"
-              :style="{ backgroundColor: currentUser.color, boxShadow: `0 0 0 2px ${getContrastColor(currentUser.color)}` }"
-            ></span>
+            <span class="user-color-indicator"
+              :style="{ backgroundColor: auth.$state.user?.color || '#667eea', boxShadow: `0 0 0 2px ${getContrastColor(auth.$state.user?.color || '#667eea')}` }"></span>
             <button @click="handleLogout" class="logout-button">
               <span>退出登录</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                 <polyline points="16 17 21 12 16 7"></polyline>
                 <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -51,21 +50,19 @@
 </template>
 
 <script lang='ts' setup>
-import { storeToRefs } from 'pinia'
-import { useScheduleStore } from '../stores/schedule'
 import GlobalSidebar from '../components/SideBar.vue'
 import { useAuthStore } from '../stores/auth'
+import { useScheduleStore } from '../stores/schedule'
 import { useRouter } from 'vue-router';
 import { onMounted } from 'vue';
 
 const auth = useAuthStore()
-const store = useScheduleStore()
+const schedule = useScheduleStore()
+const collaborators = schedule.collaborators
 const router = useRouter();
-const { currentUser, collaborators } = storeToRefs(store)
-const authStore = useAuthStore();
 
 const handleLogout = () => {
-  const loginPath = authStore.logout();
+  const loginPath = auth.logout();
   router.push(loginPath);
 };
 
@@ -253,6 +250,7 @@ const getContrastColor = (hexColor: string) => {
     transform: translateY(100%) translateX(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0) translateX(0);
     opacity: 1;
@@ -260,10 +258,13 @@ const getContrastColor = (hexColor: string) => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(0.8);
     opacity: 0.5;
   }
+
   50% {
     transform: scale(1.2);
     opacity: 1;

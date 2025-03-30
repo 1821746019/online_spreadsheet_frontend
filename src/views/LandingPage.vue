@@ -45,17 +45,17 @@ const features = ref([
   {
     icon: IconTooling,
     title: '智能排课',
-    description: '自动优化课程安排，智能解决时间冲突，一键生成最优课表'
+    description: '课程安排，解决时间冲突'
   },
   {
     icon: IconDocumentation,
     title: '表格编辑',
-    description: '直观的表格界面，支持单元格合并、公式计算等高级功能'
+    description: '直观的表格界面'
   },
   {
     icon: IconEcosystem,
     title: '团队协作',
-    description: '多人实时协同编辑，变更即时同步，历史版本可追溯'
+    description: '多人实时协同编辑'
   }
 ])
 </script>

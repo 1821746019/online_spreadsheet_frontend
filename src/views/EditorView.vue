@@ -6,8 +6,8 @@
     <div class="toolbar">
       <button @click="addNewCourse" class="feat-btn">添加课程</button>
       <div class="current-user">
-        当前用户: {{ auth.$state.user?.username }}
-        <span class="color-indicator" :style="{ backgroundColor: store.currentUser.color }"></span>
+        当前用户: {{ auth.user?.username }}
+        <span class="color-indicator" :style="{ backgroundColor: auth.user?.color || '#cccccc' }"></span>
       </div>
     </div>
 
@@ -37,13 +37,19 @@ function handleCourseMoved(course) {
     data: course,
     version: Date.now(),
     timestamp: Date.now(),
-    userId: store.currentUser.id
+    userId: auth.user?.username || 'unknown'
   })
 }
 
 function addNewCourse() {
   const newCourse = {
-    id: crypto.randomUUID(),
+    id: typeof self !== 'undefined' && self.crypto && self.crypto.randomUUID
+        ? self.crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0,
+                  v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          }),
     day: 'Monday',
     start: '08:30',
     end: '9:10',
@@ -51,7 +57,7 @@ function addNewCourse() {
     teacher: '新老师',
     room: '未分配',
     week: store.currentWeek,
-    lastUpdatedBy: store.currentUser.id
+    lastUpdatedBy: auth.user?.username || 'unknown'
   }
   store.timetable.push(newCourse)
   emitOperation({
@@ -59,7 +65,7 @@ function addNewCourse() {
     data: newCourse,
     version: Date.now(),
     timestamp: Date.now(),
-    userId: store.currentUser.id
+    userId: auth.user?.username || 'unknown'
   })
 }
 </script>

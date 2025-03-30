@@ -14,7 +14,7 @@ export interface Operation {
 }
 
 export function initSocket() {
-  socket = io('http://localhost:5173', {
+  socket = io('http://10.161.229.242:5173', {
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,

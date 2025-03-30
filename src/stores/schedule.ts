@@ -23,11 +23,7 @@ export const useScheduleStore = defineStore(
     const timetable = ref<Course[]>([])
     const currentWeek = ref(1)
     const collaborators = ref([])
-    const currentUser = ref({
-      id: crypto.randomUUID(),
-      name: '用户' + Math.floor(Math.random() * 1000),
-      color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-    })
+    const auth = useAuthStore()
 
     interface Course {
       id: string
@@ -86,7 +82,7 @@ export const useScheduleStore = defineStore(
               data: updatedCourse,
               version: Date.now(),
               timestamp: Date.now(),
-              userId: currentUser.value.id
+              userId: auth.user?.username || 'unknown'
             })
           } else {
             // 如果是新课程，添加到timetable
@@ -101,7 +97,7 @@ export const useScheduleStore = defineStore(
               data: updatedCourse,
               version: Date.now(),
               timestamp: Date.now(),
-              userId: currentUser.value.id
+              userId: auth.user?.username || 'unknown'
             })
           }
           resolve()
@@ -177,7 +173,7 @@ export const useScheduleStore = defineStore(
           },
           version: Date.now(),
           timestamp: Date.now(),
-          userId: currentUser.value.id
+              userId: auth.user?.username || 'unknown'
         })
       }
     }
@@ -186,7 +182,6 @@ export const useScheduleStore = defineStore(
       timetable,
       currentWeek,
       collaborators,
-      currentUser,
       groupedTimetable,
       fetchTimetable,
       getCoursesByDay,
