@@ -12,31 +12,46 @@
       <button @click="deleteSelectedColumn" :disabled="!selectedColumn">删除列</button>
       <button @click="exportToCSV">导出CSV</button>
     </div>
-    <div class="action-buttons"">
+    <div class="action-buttons">
       <button @click="undo" :disabled="historyIndex < 0">撤销</button>
       <button @click="redo" :disabled="historyIndex >= editHistory.length - 1">恢复</button>
     </div>
 
-    <!-- AG Grid表格 -->
+    <!-- 表格 -->
     <div class="excel-table-container">
       <table class="excel-table">
         <thead>
           <tr>
-            <th @dblclick="startEditRowHeader" :class="{ 'editing-header': editingRowHeader }">
+            <th @dblclick="startEditRowHeader"
+                :class="{ 'editing-header': editingRowHeader }"
+                @mousedown.prevent="startRowResize($event, -1)"
+                :style="{ height: rowHeights[-1] ? rowHeights[-1] + 'px' : null }">
               <template v-if="editingRowHeader">
-                <input v-model="newRowHeaderName" @blur="saveRowHeader" @keyup.enter="saveRowHeader"
-                  @keyup.escape="editingRowHeader = false" class="header-input" autofocus />
+                <input v-model="newRowHeaderName"
+                       @blur="saveRowHeader"
+                       @keyup.enter="saveRowHeader"
+                       @keyup.escape="editingRowHeader = false"
+                       class="header-input"
+                       autofocus />
               </template>
               <template v-else>
                 {{ newRowHeaderName }}
               </template>
             </th>
-            <th v-for="(header, index) in tableHeaders" :key="index" @click="selectedColumn = header"
-              @dblclick="editColumnHeader(index)"
-              :class="{ 'selected-column': selectedColumn === header, 'editing-header': editingHeader === index }">
+            <th v-for="(header, index) in tableHeaders"
+                :key="index"
+                @click="selectedColumn = header"
+                @dblclick="editColumnHeader(index)"
+                @mousedown.prevent="startColumnResize($event, header)"
+                :class="{ 'selected-column': selectedColumn === header, 'editing-header': editingHeader === index }"
+                :style="{ width: columnWidths[header] ? columnWidths[header] + 'px' : null }">
               <template v-if="editingHeader === index">
-                <input v-model="newHeaderName" @blur="saveColumnHeader(index)" @keyup.enter="saveColumnHeader(index)"
-                  @keyup.escape="editingHeader = null" class="header-input" autofocus />
+                <input v-model="newHeaderName"
+                       @blur="saveColumnHeader(index)"
+                       @keyup.enter="saveColumnHeader(index)"
+                       @keyup.escape="editingHeader = null"
+                       class="header-input"
+                       autofocus />
               </template>
               <template v-else>
                 {{ header }}
@@ -46,14 +61,28 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(row, rowIndex) in tableData" :key="rowIndex">
-            <td>
-              <input type="text" v-model="row.__rowNumber" @focus="onCellFocus(rowIndex, '__rowNumber')"
-                @blur="onCellBlur(rowIndex, '__rowNumber')">
+          <tr v-for="(row, rowIndex) in tableData" :key="rowIndex"
+              :style="{ height: rowHeights[rowIndex] ? rowHeights[rowIndex] + 'px' : null }">
+            <td @mousedown.prevent="startRowResize($event, rowIndex)">
+              <input type="text"
+                     v-model="row.__rowNumber"
+                     @focus="onCellFocus(rowIndex, '__rowNumber')"
+                     @blur="onCellBlur(rowIndex, '__rowNumber')"
+                     @copy="handleCopy($event, rowIndex, '__rowNumber')"
+                     @paste="handlePaste($event, rowIndex, '__rowNumber')">
             </td>
-            <td v-for="(header, colIndex) in tableHeaders" :key="colIndex">
-              <textarea v-model="row[header]" @focus="onCellFocus(rowIndex, header)"
-                @blur="onCellBlur(rowIndex, header)" @keydown.enter.prevent="row[header] += '\n'"></textarea>
+            <td v-for="(header, colIndex) in tableHeaders"
+                :key="colIndex"
+                :style="{ width: columnWidths[header] ? columnWidths[header] + 'px' : null }">
+              <textarea v-model="row[header]"
+                        @focus="onCellFocus(rowIndex, header)"
+                        @blur="onCellBlur(rowIndex, header)"
+                        @keydown.enter.prevent="row[header] += '\n'"
+                        @copy="handleCopy($event, rowIndex, header)"
+                        @paste="handlePaste($event, rowIndex, header)"
+                        @keydown.ctrl.c="handleCopy($event, rowIndex, header)"
+                        @keydown.ctrl.v="handlePaste($event, rowIndex, header)">
+              </textarea>
             </td>
             <td class="action-cell">
               <button @click="deleteItem(rowIndex)" class="delete-btn">删除行</button>
@@ -62,245 +91,289 @@
         </tbody>
       </table>
     </div>
-
-    <!-- 编辑对话框 -->
-    <!-- <div v-if="showEditDialog" class="edit-dialog">
-      <h3>{{ isEditing ? '编辑' : '新增' }}记录</h3>
-      <form @submit.prevent="saveItem">
-        <div v-for="header in tableHeaders" :key="header">
-          <label :for="header">{{ header }}:</label>
-          <input :id="header" v-model="currentItem[header]" type="text">
-        </div>
-        <button type="submit">保存</button>
-        <button type="button" @click="cancelEdit">取消</button>
-      </form>
-    </div> -->
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import ReadCSV from '@/components/ReadCSV.vue';
-import Papa from 'papaparse';
-import { io } from 'socket.io-client';
-import { useAuthStore } from '@/stores/auth';
+import { ref, onBeforeUnmount } from 'vue'
+import ReadCSV from '@/components/ReadCSV.vue'
+import Papa from 'papaparse'
+import { io } from 'socket.io-client'
+import { useAuthStore } from '@/stores/auth'
 
-const tableHeaders = ref(Array.from({ length: 10 }, (_, i) => String.fromCharCode(65 + i)));
-const selectedColumn = ref(null);
-const editingHeader = ref(null);
-const newHeaderName = ref('');
+const tableHeaders = ref(Array.from({ length: 10 }, (_, i) => String.fromCharCode(65 + i)))
+const selectedColumn = ref(null)
+const editingHeader = ref(null)
+const newHeaderName = ref('')
 
-// 编辑列标题
-const editColumnHeader = (index) => {
-  editingHeader.value = index;
-  newHeaderName.value = tableHeaders.value[index];
-};
+// 初始列宽和行高
+const columnWidths = ref({})
+const rowHeights = ref({})
 
-// 保存列标题修改
-const saveColumnHeader = (index) => {
-  if (newHeaderName.value && newHeaderName.value !== tableHeaders.value[index]) {
-    const oldHeader = tableHeaders.value[index];
-    tableHeaders.value[index] = newHeaderName.value;
+// 拖拽调整状态
+const isResizing = ref(false)
+const currentResizeTarget = ref(null)
+const startX = ref(0)
+const startY = ref(0)
+const startWidth = ref(0)
+const startHeight = ref(0)
 
-    // 更新所有行数据中的键
-    tableData.value.forEach(row => {
-      row[newHeaderName.value] = row[oldHeader];
-      delete row[oldHeader];
-    });
+// 复制粘贴处理
+const clipboard = ref('')
 
-    // 通知服务器数据更新
-    if (socket.value) {
-      socket.value.emit('table-update', {
-        rows: tableData.value,
-        activeCells: currentUsers.value
-      });
-    }
+const handleCopy = (event, rowIndex, header) => {
+  const value = tableData.value[rowIndex][header]
+  clipboard.value = value
+  if (event.type !== 'keydown') {
+    event.clipboardData.setData('text/plain', value)
+    event.preventDefault()
   }
-  editingHeader.value = null;
-};
+}
 
-// 行号标题编辑功能
-const editingRowHeader = ref(false);
-const newRowHeaderName = ref('行号');
+const handlePaste = async (event, rowIndex, header) => {
+  let pastedText = ''
+
+  if (event.type === 'keydown') {
+    try {
+      pastedText = await navigator.clipboard.readText()
+    } catch (err) {
+      pastedText = clipboard.value
+    }
+  } else {
+    pastedText = event.clipboardData.getData('text/plain')
+    event.preventDefault()
+  }
+
+  tableData.value[rowIndex][header] = pastedText
+  recordChange(`粘贴内容到单元格 ${header}[${rowIndex}]`)
+}
+
+// 列宽调整处理
+const startColumnResize = (e, header) => {
+  isResizing.value = true
+  currentResizeTarget.value = header
+  startX.value = e.pageX
+
+  const headerCell = e.target.closest('th')
+  startWidth.value = headerCell.offsetWidth
+
+  document.addEventListener('mousemove', handleColumnResize)
+  document.addEventListener('mouseup', stopResize)
+
+  e.preventDefault()
+}
+
+const handleColumnResize = (e) => {
+  if (!isResizing.value || !currentResizeTarget.value) return
+
+  const delta = e.pageX - startX.value
+  const newWidth = Math.max(80, startWidth.value + delta)
+
+  columnWidths.value[currentResizeTarget.value] = newWidth
+}
+
+// 行高调整处理
+const startRowResize = (e, rowIndex) => {
+  isResizing.value = true
+  currentResizeTarget.value = rowIndex
+  startY.value = e.pageY
+
+  const row = e.target.closest('tr')
+  startHeight.value = row.offsetHeight
+
+  document.addEventListener('mousemove', handleRowResize)
+  document.addEventListener('mouseup', stopResize)
+
+  e.preventDefault()
+}
+
+const handleRowResize = (e) => {
+  if (!isResizing.value || currentResizeTarget.value === null) return
+
+  const delta = e.pageY - startY.value
+  const newHeight = Math.max(32, startHeight.value + delta)
+
+  rowHeights.value[currentResizeTarget.value] = newHeight
+}
+
+// 停止拖拽调整
+const stopResize = () => {
+  isResizing.value = false
+  currentResizeTarget.value = null
+
+  document.removeEventListener('mousemove', handleColumnResize)
+  document.removeEventListener('mousemove', handleRowResize)
+  document.removeEventListener('mouseup', stopResize)
+
+  recordChange('调整表格尺寸')
+}
+
+// 在组件卸载前清理事件监听器
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', handleColumnResize)
+  document.removeEventListener('mousemove', handleRowResize)
+  document.removeEventListener('mouseup', stopResize)
+})
+
+const editingRowHeader = ref(false)
+const newRowHeaderName = ref('行号')
 
 const startEditRowHeader = () => {
-  editingRowHeader.value = true;
-};
+  editingRowHeader.value = true
+}
 
 const saveRowHeader = () => {
   if (newRowHeaderName.value.trim()) {
-    editingRowHeader.value = false;
+    editingRowHeader.value = false
   }
-};
+}
 
-
-const showEditDialog = ref(false);
-const isEditing = ref(false);
-const currentItem = ref({});
+const showEditDialog = ref(false)
+const isEditing = ref(false)
+const currentItem = ref({})
 
 const tableData = ref(Array.from({ length: 5 }, (_, i) => {
-  const row = { __rowNumber: String(i + 1) };
+  const row = { __rowNumber: String(i + 1) }
   tableHeaders.value.forEach(header => {
-    row[header] = '';
-  });
-  return row;
-}));
+    row[header] = ''
+  })
+  return row
+}))
 
 // 编辑历史记录
-const editHistory = ref([]);
-const historyIndex = ref(-1);
-const csvImporter = ref(null);
-const socket = ref(null);
-const authStore = useAuthStore();
-const currentUsers = ref({}); // { cellId: username }
-
-// 处理从CSV组件接收的数据
-const isLoading = ref(false);
-const errorMessage = ref('');
+const editHistory = ref([])
+const historyIndex = ref(-1)
+const csvImporter = ref(null)
+const socket = ref(null)
+const authStore = useAuthStore()
+const currentUsers = ref({})
 
 const handleCSVData = (data, headers) => {
   try {
-    isLoading.value = true;
-    errorMessage.value = '';
+    isLoading.value = true
+    errorMessage.value = ''
 
-    // 过滤掉内部字段(__rowId, __rowNumber)
     const filteredHeaders = headers ?
       headers.filter(h => !h.startsWith('__')) :
-      Array.from({ length: Math.max(...data.map(row => Object.keys(row).length)) }, (_, i) => String.fromCharCode(65 + i));
+      Array.from({ length: Math.max(...data.map(row => Object.keys(row).length)) }, (_, i) => String.fromCharCode(65 + i))
 
-    tableHeaders.value = filteredHeaders;
+    tableHeaders.value = filteredHeaders
 
-    // 保留原始数据中的内部字段
     tableData.value = data.map(row => {
-      const newRow = {};
-      // 保留内部字段
-      if (row.__rowId) newRow.__rowId = row.__rowId;
-      if (row.__rowNumber) newRow.__rowNumber = row.__rowNumber;
+      const newRow = {}
+      if (row.__rowId) newRow.__rowId = row.__rowId
+      if (row.__rowNumber) newRow.__rowNumber = row.__rowNumber
 
-      // 添加CSV数据
       filteredHeaders.forEach(header => {
-        newRow[header] = row[header] || '';
-      });
+        newRow[header] = row[header] || ''
+      })
+      return newRow
+    })
 
-      return newRow;
-    });
-
-    // 自动添加缺失的列
-    const allHeaders = new Set(tableHeaders.value);
+    const allHeaders = new Set(tableHeaders.value)
     tableData.value.forEach(row => {
       Object.keys(row).forEach(key => {
         if (!key.startsWith('__') && !allHeaders.has(key)) {
-          allHeaders.add(key);
+          allHeaders.add(key)
         }
-      });
-    });
+      })
+    })
 
-    // 更新表头
-    tableHeaders.value = Array.from(allHeaders);
+    tableHeaders.value = Array.from(allHeaders)
 
-    // 确保所有行都有所有列
     tableData.value = tableData.value.map(row => {
-      const completeRow = { ...row };
+      const completeRow = { ...row }
       tableHeaders.value.forEach(header => {
         if (!(header in completeRow)) {
-          completeRow[header] = '';
+          completeRow[header] = ''
         }
-      });
-      return completeRow;
-    });
+      })
+      return completeRow
+    })
 
-    // 通知服务器数据更新
     if (socket.value) {
       socket.value.emit('table-update', {
         rows: tableData.value,
         activeCells: currentUsers.value
-      });
+      })
     }
   } catch (error) {
-    errorMessage.value = `导入失败: ${error.message}`;
+    errorMessage.value = `导入失败: ${error.message}`
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 const onCellFocus = (rowIndex, header) => {
-  const cellId = `${rowIndex}-${header}`;
+  const cellId = `${rowIndex}-${header}`
 
-  // 初始化WebSocket连接
   if (!socket.value) {
-    socket.value = io('http://10.161.229.242:5173');
+    socket.value = io('http://10.161.229.242:5173')
     socket.value.on('table-update', (data) => {
-      tableData.value = data.rows;
-      currentUsers.value = data.activeCells;
-    });
+      tableData.value = data.rows
+      currentUsers.value = data.activeCells
+    })
 
     socket.value.emit('user-joined', {
       username: authStore.user?.username || 'Anonymous'
-    });
+    })
   }
 
-  // 通知服务器当前单元格被编辑
   socket.value.emit('cell-focus', {
     rowIndex,
     field: header,
     username: authStore.user?.username || 'Anonymous'
-  });
+  })
 
-  // 自动调整textarea高度
   if (header !== '__rowNumber') {
-    const colIndex = tableHeaders.value.indexOf(header) + 2; // +2 for row number and 1-based index
-    const textarea = document.querySelector(`.excel-table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex}) textarea`);
+    const colIndex = tableHeaders.value.indexOf(header) + 2
+    const textarea = document.querySelector(`.excel-table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex}) textarea`)
     if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight}px`;
+      // 保持默认高度不变
+      textarea.style.height = 'auto'
     }
   }
-};
+}
 
 const onCellBlur = (rowIndex, header) => {
-  const cellId = `${rowIndex}-${header}`;
-  const row = tableData.value[rowIndex];
-  const oldValue = row[header];
+  const cellId = `${rowIndex}-${header}`
+  const row = tableData.value[rowIndex]
+  const oldValue = row[header]
 
-  // 通知服务器单元格编辑结束
   if (socket.value) {
     socket.value.emit('cell-blur', {
       rowIndex,
       field: header,
       username: authStore.user?.username || 'Anonymous'
-    });
+    })
   }
 
-  // 保存当前状态的快照
   const snapshot = {
     timestamp: new Date(),
     description: `修改单元格 ${header}[${rowIndex}]`,
     data: JSON.parse(JSON.stringify(tableData.value)),
     headers: [...tableHeaders.value]
-  };
-
-  // 更新历史记录
-  if (historyIndex.value < editHistory.value.length - 1) {
-    editHistory.value = editHistory.value.slice(0, historyIndex.value + 1);
   }
-  editHistory.value.push(snapshot);
-  historyIndex.value = editHistory.value.length - 1;
 
-  // 重置textarea高度
+  if (historyIndex.value < editHistory.value.length - 1) {
+    editHistory.value = editHistory.value.slice(0, historyIndex.value + 1)
+  }
+  editHistory.value.push(snapshot)
+  historyIndex.value = editHistory.value.length - 1
+
+  // 在 blur 时恢复默认高度
   if (header !== '__rowNumber') {
-    const colIndex = tableHeaders.value.indexOf(header) + 2; // +2 for row number and 1-based index
-    const textarea = document.querySelector(`.excel-table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex}) textarea`);
+    const colIndex = tableHeaders.value.indexOf(header) + 2
+    const textarea = document.querySelector(`.excel-table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex}) textarea`)
     if (textarea) {
-      textarea.style.height = '48px';
+      textarea.style.height = 'auto'
     }
   }
-};
+}
 
-// 记录变更到历史
 const recordChange = (description) => {
-  // 如果当前不在历史记录的末尾，则丢弃后面的历史
   if (historyIndex.value < editHistory.value.length - 1) {
-    editHistory.value = editHistory.value.slice(0, historyIndex.value + 1);
+    editHistory.value = editHistory.value.slice(0, historyIndex.value + 1)
   }
 
   const snapshot = {
@@ -308,155 +381,147 @@ const recordChange = (description) => {
     description,
     data: JSON.parse(JSON.stringify(tableData.value)),
     headers: [...tableHeaders.value]
-  };
+  }
 
-  editHistory.value.push(snapshot);
-  historyIndex.value = editHistory.value.length - 1;
-};
+  editHistory.value.push(snapshot)
+  historyIndex.value = editHistory.value.length - 1
+}
 
-// 撤销操作
 const undo = () => {
   if (historyIndex.value > 0) {
-    historyIndex.value--;
-    applyHistorySnapshot();
+    historyIndex.value--
+    applyHistorySnapshot()
   }
-};
+}
 
-// 重做操作
 const redo = () => {
   if (historyIndex.value < editHistory.value.length - 1) {
-    historyIndex.value++;
-    applyHistorySnapshot();
+    historyIndex.value++
+    applyHistorySnapshot()
   }
-};
+}
 
-// 应用历史快照
 const applyHistorySnapshot = () => {
   if (historyIndex.value < 0 || historyIndex.value >= editHistory.value.length) {
-    return;
+    return
   }
 
-  const snapshot = editHistory.value[historyIndex.value];
-  tableData.value = JSON.parse(JSON.stringify(snapshot.data));
-  tableHeaders.value = [...snapshot.headers];
+  const snapshot = editHistory.value[historyIndex.value]
+  tableData.value = JSON.parse(JSON.stringify(snapshot.data))
+  tableHeaders.value = [...snapshot.headers]
 
-  // 通知服务器数据更新
   if (socket.value) {
     socket.value.emit('table-update', {
       rows: tableData.value,
       activeCells: currentUsers.value
-    });
+    })
   }
-};
+}
 
-// 确保所有修改操作都调用recordChange
 const addNewItem = () => {
   const maxRowNumber = Math.max(...tableData.value.map(row =>
     parseInt(row.__rowNumber) || 0
-  ));
+  ))
 
   const newItem = {
     __rowId: Date.now(),
     __rowNumber: String(maxRowNumber + 1)
-  };
+  }
   tableHeaders.value.forEach(header => {
-    newItem[header] = '';
-  });
-  tableData.value.push(newItem);
-  recordChange(`新增行 ${newItem.__rowNumber}`);
+    newItem[header] = ''
+  })
+  tableData.value.push(newItem)
+  recordChange(`新增行 ${newItem.__rowNumber}`)
 
   if (socket.value) {
     socket.value.emit('table-update', {
       rows: tableData.value,
       activeCells: currentUsers.value
-    });
+    })
   }
-};
+}
 
 const addNewColumn = () => {
   const maxColCode = Math.max(...tableHeaders.value.map(header =>
     header.charCodeAt(0)
-  ));
-  const newHeader = String.fromCharCode(maxColCode + 1);
+  ))
+  const newHeader = String.fromCharCode(maxColCode + 1)
 
-  tableHeaders.value.push(newHeader);
+  tableHeaders.value.push(newHeader)
   tableData.value.forEach(row => {
-    row[newHeader] = '';
-  });
-  recordChange(`新增列 ${newHeader}`);
+    row[newHeader] = ''
+  })
+  recordChange(`新增列 ${newHeader}`)
 
   if (socket.value) {
     socket.value.emit('table-update', {
       rows: tableData.value,
       activeCells: currentUsers.value
-    });
+    })
   }
-};
+}
 
 const deleteItem = (index) => {
-  const deletedRow = tableData.value[index];
-  tableData.value.splice(index, 1);
-  recordChange(`删除行 ${deletedRow.__rowNumber}`);
+  const deletedRow = tableData.value[index]
+  tableData.value.splice(index, 1)
+  recordChange(`删除行 ${deletedRow.__rowNumber}`)
 
   if (socket.value) {
     socket.value.emit('table-update', {
       rows: tableData.value,
       activeCells: currentUsers.value
-    });
+    })
   }
-};
+}
 
 const deleteSelectedColumn = () => {
-  if (!selectedColumn.value) return;
+  if (!selectedColumn.value) return
 
-  const index = tableHeaders.value.indexOf(selectedColumn.value);
+  const index = tableHeaders.value.indexOf(selectedColumn.value)
   if (index !== -1) {
-    const columnName = selectedColumn.value;
-    tableHeaders.value.splice(index, 1);
+    const columnName = selectedColumn.value
+    tableHeaders.value.splice(index, 1)
     tableData.value.forEach(row => {
-      delete row[selectedColumn.value];
-    });
-    selectedColumn.value = null;
-    recordChange(`删除列 ${columnName}`);
+      delete row[selectedColumn.value]
+    })
+    selectedColumn.value = null
+    recordChange(`删除列 ${columnName}`)
 
     if (socket.value) {
       socket.value.emit('table-update', {
         rows: tableData.value,
         activeCells: currentUsers.value
-      });
+      })
     }
   }
-};
+}
 
-// 导出CSV
 const exportToCSV = () => {
-  // 准备导出数据 - 过滤掉内部字段
   const exportData = tableData.value.map(row => {
-    const exportedRow = {};
+    const exportedRow = {}
     tableHeaders.value.forEach(header => {
-      exportedRow[header] = row[header] || '';
-    });
-    return exportedRow;
-  });
+      exportedRow[header] = row[header] || ''
+    })
+    return exportedRow
+  })
 
   const csv = Papa.unparse({
     fields: tableHeaders.value,
     data: exportData
-  });
+  })
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `export_${new Date().toISOString().slice(0, 10)}.csv`;
-  link.click();
-};
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `export_${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+}
 </script>
 
 <style scoped>
 .common-form-view {
   min-height: 100vh;
   padding: 2rem;
-  /* background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); */
   display: flex;
   flex-direction: column;
 }
@@ -473,17 +538,9 @@ const exportToCSV = () => {
 }
 
 @keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .excel-table-container {
@@ -511,11 +568,48 @@ const exportToCSV = () => {
 .excel-table th,
 .excel-table td {
   border: 1px solid #ddd;
-  padding: 4px 8px;
+  padding: 0;
   text-align: left;
   min-width: 80px;
-  height: 32px;
+  min-height: 32px;
   box-sizing: border-box;
+  position: relative;
+}
+
+/* 列宽调整手柄 */
+.excel-table th::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  cursor: col-resize;
+}
+
+.excel-table th:hover::after {
+  background: #1890ff;
+}
+
+/* 行高调整手柄 */
+.excel-table tr td:first-child::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  cursor: row-resize;
+}
+
+.excel-table tr td:first-child:hover::after {
+  background: #1890ff;
+}
+
+.excel-table td {
+  position: relative;
 }
 
 .excel-table th {
@@ -549,40 +643,49 @@ const exportToCSV = () => {
   background-color: #fffde7;
 }
 
-.excel-table input {
-  width: 100%;
-  border: none;
-  padding: 2px 4px;
-  box-sizing: border-box;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  min-height: 24px;
-  resize: vertical;
-  font-size: 0.9em;
-}
-
+.excel-table input,
 .excel-table textarea {
   width: 100%;
   border: none;
-  padding: 2px 4px;
+  padding: 4px 8px;
   box-sizing: border-box;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  min-height: 24px;
-  resize: none;
   font-family: inherit;
   font-size: 0.9em;
-  overflow: hidden;
-  transition: height 0.2s;
+  background: transparent;
+  resize: none;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.excel-table textarea {
+  line-height: 1.5;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.excel-table textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.excel-table textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.excel-table textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
 }
 
 .excel-table input:focus,
 .excel-table textarea:focus {
   outline: 2px solid #4CAF50;
   background-color: #fffde7;
-  min-height: 32px;
+  position: relative;
+  z-index: 1;
 }
 
 .excel-table td.editing {
