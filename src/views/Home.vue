@@ -5,7 +5,7 @@
       <div class="header-content">
         <div class="logo-container">
           <h1 class="logo">多人在线表格编辑系统</h1>
-          <div class="logo-subtitle">实时协作 · 高效办公</div>
+          <div class="logo-subtitle">实时协作 · 在线编辑</div>
         </div>
         <div class="user-info">
           <template v-if="auth.$state.token">

@@ -119,11 +119,20 @@ interface Course {
   teacher: string
   room: string
   lastUpdatedBy: string | undefined
+  classId: number
+  semester: string
 }
 
 const store = useScheduleStore()
-const tableData = computed(() => store.timetable)
+const auth = useAuthStore()
 const tableKey = ref(0)
+
+const tableData = computed(() => {
+  return store.timetable.filter(course =>
+    course.classId === store.currentClass?.id &&
+    course.semester === store.currentSemester
+  )
+})
 
 const forceTableUpdate = () => {
   tableKey.value++
@@ -146,14 +155,11 @@ const handleDelete = (id: string) => {
 // 保存修改
 function saveCourse() {
   if (editingCourse.value) {
-    // 获取当前登录用户信息
-    const authStore = useAuthStore()
-    const currentUser = authStore.user?.username || '未知用户'
-
-    // 更新最后更新人信息
     const updatedCourse = {
       ...editingCourse.value,
-      lastUpdatedBy: currentUser
+      classId: store.currentClass?.id || 0,
+      semester: store.currentSemester || '2024-2025-第一学期',
+      lastUpdatedBy: auth.user?.username || '未知用户'
     }
 
     store.updateCourse(updatedCourse).then(() => {

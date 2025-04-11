@@ -23,11 +23,16 @@
         </div>
       </div>
 
-      <div v-for="day in days" :key="day" class="day-column" @dragover.prevent @drop="handleDrop($event, day)">
+      <div v-for="day in days" :key="day" class="day-column"
+           @dragover.prevent="handleDragOver"
+           @dragenter.prevent
+           @drop="handleDrop($event, day)">
         <div v-for="time in realtime" :key="time" class="time-slot" :data-time="day + '-' + time"></div>
 
         <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
-          :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
+          :style="getCourseStyle(course)" draggable="true"
+          @dragstart="handleDragStart($event, course)"
+          @dragend="handleDragEnd"
           :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
           <div class="course-content">
             <span class="course-title">{{ course.course }}</span>
@@ -100,7 +105,16 @@ function handleWeekChange(week) {
 }
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const realtime = ['8:30-9:10', '9:15-9:55', '10:15-10:55', '11:00-11:40', '14:00-14:40', '14:45-15:25', '15:45-16:25', '16:30-17:10', '19:00-20:20', '20:30-21:50']
+const realtime = [
+  '08:30-09:55', // 第1-2节
+  '10:15-11:40', // 第3-4节
+  '11:45-12:25', // 第5节
+  '14:00-15:25', // 第6-7节
+  '15:45-17:10', // 第8-9节
+  '17:15-17:55', // 第10节
+  '19:00-20:20', // 第11-12节
+  '20:30-21:50'  // 第13-14节
+]
 const realtimeTimes = realtime.map(time => {
   const [start, end] = time.split('-')
   const [startHour, startMinute] = start.split(':').map(Number)
@@ -134,17 +148,27 @@ const dayMap = {
 
 function getCoursesByDay(day) {
   return store.timetable.filter(c => {
-    // 严格匹配当前周次和日期
     return c.day === day && c.week === store.currentWeek
   })
 }
 
 function handleDragStart(e, course) {
-  e.dataTransfer.setData('courseId', course.id)
+  e.dataTransfer.setData('text/plain', course.id)
+  e.dataTransfer.effectAllowed = 'move'
+  e.target.classList.add('dragging')
+}
+
+function handleDragOver(e) {
+  e.dataTransfer.dropEffect = 'move'
+}
+
+function handleDragEnd(e) {
+  e.target.classList.remove('dragging')
 }
 
 function handleDrop(e, day) {
-  const courseId = e.dataTransfer.getData('courseId')
+  e.preventDefault()
+  const courseId = e.dataTransfer.getData('text/plain')
   const targetColumn = e.currentTarget
   const rect = targetColumn.getBoundingClientRect()
   const mouseY = e.clientY - rect.top
@@ -173,12 +197,13 @@ function handleDrop(e, day) {
     day,
     start: convertMinutesToTime(realtimeTimes[slotIndex].start),
     end: convertMinutesToTime(realtimeTimes[newEndSlot].end),
-    week: originalCourse.week || store.currentWeek // 保留原周次或使用当前周次
+    week: originalCourse.week || store.currentWeek
   }
 
   store.updateCourse(updatedCourse)
   emit('courseMoved', updatedCourse)
 }
+
 function getCourseStyle(course) {
   const startMinutes = convertTimeToMinutes(course.start)
   const endMinutes = convertTimeToMinutes(course.end)
@@ -199,15 +224,10 @@ function getUserColor(userId) {
   return user ? user.color : '#ccc'
 }
 
-
-// 编辑层
-// 新增以下代码
-
 // 编辑相关状态
 const editingCourse = ref(null)
 const showEditDialog = ref(false)
 
-// 双击事件处理
 function handleDblClick(course) {
   editingCourse.value = {
     day: 'Monday',
@@ -220,12 +240,11 @@ function handleDblClick(course) {
   showEditDialog.value = true
 }
 
-// 保存修改
 function saveCourse() {
   if (editingCourse.value) {
     const courseToSave = {
       ...editingCourse.value,
-      week: store.currentWeek, // 强制使用当前周次
+      week: store.currentWeek,
       id: editingCourse.value.id,
       day: editingCourse.value.day || 'Monday'
     }
@@ -233,6 +252,7 @@ function saveCourse() {
     showEditDialog.value = false
   }
 }
+
 const handleDelete = () => {
   if (editingCourse.value && confirm('确认删除该课程？')) {
     store.removeCourse(editingCourse.value.id)
@@ -242,6 +262,7 @@ const handleDelete = () => {
 </script>
 
 <style scoped>
+/* 保持原有样式不变 */
 .week-selector {
   margin-bottom: 20px;
   display: flex;
@@ -320,19 +341,31 @@ const handleDelete = () => {
 
 .course-block {
   position: absolute;
+  top: calc(var(--slot-index) * 80px);
   left: 4px;
   right: 4px;
+  height: calc(var(--slot-duration) * 80px);
+  min-height: 60px;
+  overflow: hidden;
   background: linear-gradient(135deg, #ebf4ff 0%, #c3dafe 100%);
   border: 2px solid #90cdf4;
   border-radius: 8px;
   padding: 10px;
-  cursor: move;
+  cursor: grab;
   transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-  top: calc(var(--slot-index) * 80px);
-  height: calc(var(--slot-duration) * 80px);
-  min-height: 60px;
+  user-select: none;
+}
+
+.course-block.dragging {
+  opacity: 0.8;
+  transform: scale(0.98);
+  cursor: grabbing;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.course-block:active {
+  cursor: grabbing;
 }
 
 .course-block:hover {
@@ -394,7 +427,6 @@ const handleDelete = () => {
   }
 }
 
-/* 编辑模态框样式 */
 .edit-modal {
   position: fixed;
   top: 0;
@@ -404,10 +436,10 @@ const handleDelete = () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* 改为顶部对齐 */
-  padding-top: 40px; /* 添加顶部内边距 */
-  padding-bottom: 40px; /* 添加底部内边距 */
-  overflow-y: auto; /* 允许垂直滚动 */
+  align-items: flex-start;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  overflow-y: auto;
   z-index: 1000;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.3s ease;
@@ -418,12 +450,12 @@ const handleDelete = () => {
   padding: 2rem;
   border-radius: 16px;
   width: 440px;
-  max-height: calc(100vh - 80px); /* 限制最大高度 */
+  max-height: calc(100vh - 80px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   transform: translateY(0);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   border: 1px solid rgba(0, 0, 0, 0.05);
-  overflow-y: auto; /* 允许内容滚动 */
+  overflow-y: auto;
 }
 
 @keyframes fadeIn {
@@ -484,11 +516,6 @@ const handleDelete = () => {
 
 .modern-input:hover {
   border-color: #cbd5e0;
-}
-
-.modern-input:focus {
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
 }
 
 .button-group {

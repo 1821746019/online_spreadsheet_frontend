@@ -1,6 +1,35 @@
-<!-- views/EditorView.vue -->
 <template>
   <div class="editor-view">
+    <div class="header-selectors">
+      <el-select
+        v-model="selectedClass"
+        placeholder="选择班级"
+        @change="handleClassChange"
+        class="selector"
+      >
+        <el-option
+          v-for="classItem in classes"
+          :key="classItem.id"
+          :label="classItem.name"
+          :value="classItem"
+        />
+      </el-select>
+
+      <el-select
+        v-model="selectedSemester"
+        placeholder="选择学期"
+        @change="handleSemesterChange"
+        class="selector"
+      >
+        <el-option
+          v-for="semester in semesters"
+          :key="semester"
+          :label="semester"
+          :value="semester"
+        />
+      </el-select>
+    </div>
+
     <CourseDataform></CourseDataform>
     <hr>
     <div class="toolbar">
@@ -23,14 +52,49 @@
 </template>
 
 <script setup name="EditorView">
+import { ref, onMounted } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 import ScheduleGrid from '../components/ScheduleGrid.vue'
 import { emitOperation } from '../utils/socket'
-import ReadCSV from '@/components/ReadCSV.vue'
 import { useAuthStore } from '../stores/auth'
 import CourseDataform from '../components/CourseDataform.vue'
-const auth=useAuthStore()
+import { fetchClasses } from '../utils/api'
+
+const auth = useAuthStore()
 const store = useScheduleStore()
+const classes = ref([])
+const selectedClass = ref(null)
+const selectedSemester = ref('2024-2025-第一学期')
+
+// 预定义的学期列表
+const semesters = ref([
+  '2024-2025-第一学期',
+  '2024-2025-第二学期'
+])
+
+onMounted(async () => {
+  // 初始化班级数据
+  const classRes = await fetchClasses()
+  classes.value = classRes.data?.list || []
+
+  // 设置默认值
+  if (classes.value.length > 0) {
+    selectedClass.value = classes.value[0]
+    store.setCurrentClass(classes.value[0])
+  }
+
+  // 设置默认学期
+  store.setCurrentSemester(selectedSemester.value)
+})
+
+function handleClassChange(classInfo) {
+  store.setCurrentClass(classInfo)
+}
+
+function handleSemesterChange(semester) {
+  store.setCurrentSemester(semester)
+}
+
 function handleCourseMoved(course) {
   emitOperation({
     type: 'update',
@@ -57,7 +121,9 @@ function addNewCourse() {
     teacher: '新老师',
     room: '未分配',
     week: store.currentWeek,
-    lastUpdatedBy: auth.user?.username || 'unknown'
+    lastUpdatedBy: auth.user?.username || 'unknown',
+    classId: store.currentClass?.id || 0,
+    semester: store.currentSemester || '2024-2025-第一学期'
   }
   store.timetable.push(newCourse)
   emitOperation({
@@ -77,6 +143,17 @@ function addNewCourse() {
   max-width: 1500px;
   margin: 0 auto;
   width: 100%;
+}
+
+.header-selectors {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.selector {
+  flex: 1;
+  max-width: 300px;
 }
 .toolbar {
   margin-bottom: 20px;

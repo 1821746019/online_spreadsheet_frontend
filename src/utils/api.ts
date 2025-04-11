@@ -31,4 +31,30 @@ instance.interceptors.response.use(
   }
 );
 
+// 班级相关API
+export const fetchClasses = () => instance.get('/classes');
+
+// 学期相关API
+export const fetchSemesters = () => {
+  // 暂时返回固定学期列表，后续可改为从后端获取
+  return Promise.resolve({
+    data: [
+      '2024-2025-第一学期',
+      '2024-2025-第二学期',
+      '2023-2024-第一学期',
+      '2023-2024-第二学期'
+    ]
+  });
+};
+
+// 课表相关API
+export const fetchClassTimetable = (classId: number, semester: string, week?: number) => {
+  return instance.get(`/classes/${classId}/sheet`, {
+    params: {
+      semester,
+      week
+    }
+  });
+};
+
 export default instance;

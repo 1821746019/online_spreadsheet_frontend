@@ -4,6 +4,14 @@ import { emitOperation, type Operation } from '../utils/socket'
 import axios from '../utils/api'
 import { useAuthStore } from './auth'
 
+export interface Class {
+  id: number
+  name: string
+  creator_id?: number
+  create_time?: string
+  update_time?: string
+}
+
 export interface Course {
   id: string
   day: string
@@ -15,6 +23,8 @@ export interface Course {
   lastUpdatedBy: any
   hasConflict?: boolean
   week: number
+  classId: number
+  semester: string
 }
 
 export const useScheduleStore = defineStore(
@@ -22,6 +32,8 @@ export const useScheduleStore = defineStore(
   () => {
     const timetable = ref<Course[]>([])
     const currentWeek = ref(1)
+    const currentClass = ref<Class | null>(null)
+    const currentSemester = ref('2024-2025-第一学期')
     const collaborators = ref([])
     const auth = useAuthStore()
 
@@ -36,12 +48,53 @@ export const useScheduleStore = defineStore(
       lastUpdatedBy: any
       hasConflict?: boolean
       week: number
+      classId: number
+      semester: string
     }
 
-    // 初始化空课表
+    // 获取课表数据
     async function fetchTimetable(week: number) {
       currentWeek.value = week
-      // 保留所有周次数据，仅切换当前显示的周次
+      if (!currentClass.value) return
+
+      try {
+        const response = await axios.get(`/classes/${currentClass.value.id}/sheet`, {
+          params: {
+            semester: currentSemester.value,
+            week
+          }
+        })
+        timetable.value = response.data.map((course: any) => ({
+          ...course,
+          classId: currentClass.value?.id || 0,
+          semester: currentSemester.value
+        }))
+      } catch (error) {
+        console.error('获取课表失败:', error)
+      }
+    }
+
+    // 获取班级列表
+    async function fetchClasses() {
+      try {
+        const response = await axios.get('/classes')
+        return response.data.list || []
+      } catch (error) {
+        console.error('获取班级列表失败:', error)
+        return []
+      }
+    }
+
+    // 设置当前班级
+    async function setCurrentClass(classInfo: Class) {
+      currentClass.value = classInfo
+      await fetchTimetable(currentWeek.value)
+    }
+
+    // 设置当前学期
+    async function setCurrentSemester(semester: string) {
+      currentSemester.value = semester
+      await fetchTimetable(currentWeek.value)
     }
 
     // 计算属性：按天分组
@@ -49,12 +102,22 @@ export const useScheduleStore = defineStore(
       const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       return days.map((day) => ({
         day,
-        courses: timetable.value.filter((c) => c.day === day && c.week === currentWeek.value),
+        courses: timetable.value.filter((c) =>
+          c.day === day &&
+          c.week === currentWeek.value &&
+          c.classId === currentClass.value?.id &&
+          c.semester === currentSemester.value
+        ),
       }))
     })
 
     function getCoursesByDay(day: string) {
-      return timetable.value.filter((c) => c.day === day && c.week === currentWeek.value)
+      return timetable.value.filter((c) =>
+        c.day === day &&
+        c.week === currentWeek.value &&
+        c.classId === currentClass.value?.id &&
+        c.semester === currentSemester.value
+      )
     }
 
     async function updateCourse(updatedCourse: Course) {
@@ -62,44 +125,34 @@ export const useScheduleStore = defineStore(
         try {
           const auth = useAuthStore()
           const index = timetable.value.findIndex((c) => c.id === updatedCourse.id)
-          if (index > -1) {
-            // 先移除旧记录
-            timetable.value.splice(index, 1)
-            // 添加更新后的记录，确保按周次排序
-            timetable.value.push({
-              ...updatedCourse,
-              lastUpdatedBy: auth.$state.user?.username || '未知用户',
-              week: updatedCourse.week || currentWeek.value,
-            })
-            // 按周次和ID重新排序
-            timetable.value.sort((a, b) => {
-              if (a.week !== b.week) return a.week - b.week
-              return a.id.localeCompare(b.id)
-            })
-            checkConflicts(updatedCourse)
-            emitOperation({
-              type: 'update',
-              data: updatedCourse,
-              version: Date.now(),
-              timestamp: Date.now(),
-              userId: auth.user?.username || 'unknown'
-            })
-          } else {
-            // 如果是新课程，添加到timetable
-            timetable.value.push({
-              ...updatedCourse,
-              lastUpdatedBy: auth.$state.user?.username || '未知用户',
-              week: updatedCourse.week || currentWeek.value,
-            })
-            checkConflicts(updatedCourse)
-            emitOperation({
-              type: 'insert',
-              data: updatedCourse,
-              version: Date.now(),
-              timestamp: Date.now(),
-              userId: auth.user?.username || 'unknown'
-            })
+          const finalCourse = {
+            ...updatedCourse,
+            classId: currentClass.value?.id || 0,
+            semester: currentSemester.value,
+            lastUpdatedBy: auth.$state.user?.username || '未知用户',
+            week: updatedCourse.week || currentWeek.value
           }
+
+          if (index > -1) {
+            timetable.value.splice(index, 1)
+            timetable.value.push(finalCourse)
+          } else {
+            timetable.value.push(finalCourse)
+          }
+
+          timetable.value.sort((a, b) => {
+            if (a.week !== b.week) return a.week - b.week
+            return a.id.localeCompare(b.id)
+          })
+
+          checkConflicts(finalCourse)
+          emitOperation({
+            type: 'update',
+            data: finalCourse,
+            version: Date.now(),
+            timestamp: Date.now(),
+            userId: auth.user?.username || 'unknown'
+          })
           resolve()
         } catch (error) {
           reject(error)
@@ -113,6 +166,8 @@ export const useScheduleStore = defineStore(
           c.day === course.day &&
           c.start === course.start &&
           c.week === course.week &&
+          c.classId === course.classId &&
+          c.semester === course.semester &&
           c.id !== course.id &&
           (c.teacher === course.teacher || c.room === course.room)
       })
@@ -146,7 +201,6 @@ export const useScheduleStore = defineStore(
         }
       } catch (e) {
         console.error('Failed to apply operation:', op, e)
-        // 将失败的操作重新放入队列
         operationQueue.value.push(op)
         setTimeout(() => {
           if (operationQueue.value.length > 0) {
@@ -173,7 +227,7 @@ export const useScheduleStore = defineStore(
           },
           version: Date.now(),
           timestamp: Date.now(),
-              userId: auth.user?.username || 'unknown'
+          userId: auth.user?.username || 'unknown'
         })
       }
     }
@@ -181,9 +235,14 @@ export const useScheduleStore = defineStore(
     return {
       timetable,
       currentWeek,
+      currentClass,
+      currentSemester,
       collaborators,
       groupedTimetable,
       fetchTimetable,
+      fetchClasses,
+      setCurrentClass,
+      setCurrentSemester,
       getCoursesByDay,
       updateCourse,
       removeCourse,
@@ -193,5 +252,5 @@ export const useScheduleStore = defineStore(
   },
   {
     persist: true,
-  },
+  }
 )

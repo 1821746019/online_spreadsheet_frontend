@@ -5,6 +5,7 @@ interface User {
   username: string
   email?: string
   color?: string
+  id: string
 }
 
 interface AuthState {
@@ -24,7 +25,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.post('/login', { username, password })
         this.token = response.data.token
-        this.user = { username }
+        this.user = { username, id: response.data.id }
         this.isAuthenticated = true
 
         // 存储token和user到localStorage
@@ -42,7 +43,7 @@ export const useAuthStore = defineStore('auth', {
 
     async register(username: string, email: string, password: string) {
       try {
-        const response = await api.post('/register', { username, email, password })
+        const response = await api.post('/signup', { username, password,email})
         return response
       } catch (error) {
         throw error

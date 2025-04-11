@@ -17,23 +17,28 @@ const router = createRouter({
       name: 'home',
       component: Home,
       children: [
+        // {
+        //   path: '/home/class',
+        //   name: 'class',
+        //   component: () => import('../views/ClassSchedleView.vue'),
+        // },
         {
-          path: '',
+          path: '/home/editor',
           name: 'editor',
           component: EditorView,
         },
         {
-          path: '/read',
+          path: '/home/read',
           name: 'read',
           component: ReadCSV,
         },
         {
-          path: '/form',
+          path: '/home/form',
           name: 'form',
           component: CommonFormView,
         },
         {
-          path:'/course',
+          path:'/home/course',
           name:'course',
           component:CourseDataform
         }
