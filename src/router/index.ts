@@ -17,11 +17,23 @@ const router = createRouter({
       name: 'home',
       component: Home,
       children: [
-        // {
-        //   path: '/home/class',
-        //   name: 'class',
-        //   component: () => import('../views/ClassSchedleView.vue'),
-        // },
+        {
+          path: '',
+          name: 'class',
+          component: () => import('../views/ClassSelectview.vue'),
+        },
+        {
+          path: '/class/:class_id/sheet',  // 动态路由参数
+          name: 'SheetSelect',
+          component: () => import('../views/SheetSelect.vue'), // 课表组件
+          props: true // 将路由参数作为props传递给组件
+        },
+        {
+          path: '/class/:class_id/sheet/:sheet_id',  // 动态路由参数
+          name: 'Sheet',
+          component: () => import('../views/SheetSelect.vue'), // 课表组件
+          props: true // 将路由参数作为props传递给组件
+        },
         {
           path: '/home/editor',
           name: 'editor',

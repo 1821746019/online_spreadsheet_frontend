@@ -1,12 +1,7 @@
 <template>
   <div class="week-selector">
-    <el-select v-model="currentWeek" placeholder="选择周次" @change="handleWeekChange">
-      <el-option
-        v-for="week in 20"
-        :key="week"
-        :label="`第 ${week} 周`"
-        :value="week"
-      />
+    <el-select v-model="store.currentweek" placeholder="选择周次" @change="handleWeekChange">
+      <el-option v-for="week in 20" :key="week" :label="`第 ${week} 周`" :value="week" />
     </el-select>
   </div>
   <div class="schedule-grid">
@@ -23,17 +18,13 @@
         </div>
       </div>
 
-      <div v-for="day in days" :key="day" class="day-column"
-           @dragover.prevent="handleDragOver"
-           @dragenter.prevent
-           @drop="handleDrop($event, day)">
+      <div v-for="day in days" :key="day" class="day-column" @dragover.prevent="handleDragOver" @dragenter.prevent
+        @drop="handleDrop($event, day)">
         <div v-for="time in realtime" :key="time" class="time-slot" :data-time="day + '-' + time"></div>
 
         <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
-          :style="getCourseStyle(course)" draggable="true"
-          @dragstart="handleDragStart($event, course)"
-          @dragend="handleDragEnd"
-          :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
+          :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
+          @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
           <div class="course-content">
             <span class="course-title">{{ course.course }}</span>
             <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
@@ -89,19 +80,28 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
-import { ElInput } from 'element-plus'
 
 const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
-const currentWeek = ref(store.currentWeek)
+const forceUpdate = ref(0)
 
-// 监听store.currentWeek变化
-watch(() => store.currentWeek, (newWeek) => {
-  currentWeek.value = newWeek
-})
 
-function handleWeekChange(week) {
-  store.fetchTimetable(week)
+// 监听store变化
+// watch(() => [store.currentWeek, store.currentClass, store.currentSemester], async (newVal, oldVal) => {
+//   console.log('Store changed - new:', newVal, 'old:', oldVal)
+//   forceUpdate.value++
+//   await store.fetchTimetable(store.currentWeek)
+//   forceUpdate.value++
+// }, { immediate: true, deep: true })
+
+async function handleWeekChange(week) {
+  // console.log('Handling week change to:', week)
+  try {
+    store.currentWeek = week
+    await store.fetchTimetable(week)
+  } catch (error) {
+    console.error('Failed to change week:', error)
+  }
 }
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -147,9 +147,15 @@ const dayMap = {
 }
 
 function getCoursesByDay(day) {
-  return store.timetable.filter(c => {
-    return c.day === day && c.week === store.currentWeek
+  // console.log('Current week:', store.currentWeek)
+  const courses = store.timetable.filter(c => {
+    // 检查课程是否匹配当前周次或跨周
+    const matchesWeek = c.week === store.currentWeek ||
+                       (c.weeks && c.weeks.includes(store.currentWeek))
+    return c.day === day && matchesWeek
   })
+  //  console.log('Filtered courses:', courses)
+  return courses
 }
 
 function handleDragStart(e, course) {
@@ -287,7 +293,8 @@ const handleDelete = () => {
   background: #f8fafc;
 }
 
-.time-header, .day-header {
+.time-header,
+.day-header {
   background: #2d3748;
   color: white;
   padding: 15px 10px;
@@ -417,10 +424,12 @@ const handleDelete = () => {
     transform: scale(0.98);
     box-shadow: 0 0 0 0 rgba(252, 129, 129, 0.4);
   }
+
   70% {
     transform: scale(1);
     box-shadow: 0 0 0 6px rgba(252, 129, 129, 0);
   }
+
   100% {
     transform: scale(0.98);
     box-shadow: 0 0 0 0 rgba(252, 129, 129, 0);
@@ -459,8 +468,13 @@ const handleDelete = () => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-title {
@@ -531,7 +545,9 @@ const handleDelete = () => {
   z-index: 1;
 }
 
-.save-btn, .cancel-btn, .delete-btn {
+.save-btn,
+.cancel-btn,
+.delete-btn {
   padding: 12px 24px;
   border-radius: 10px;
   border: none;
@@ -606,7 +622,9 @@ const handleDelete = () => {
     flex-wrap: wrap;
   }
 
-  .save-btn, .cancel-btn, .delete-btn {
+  .save-btn,
+  .cancel-btn,
+  .delete-btn {
     flex: 1;
     justify-content: center;
   }

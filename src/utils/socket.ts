@@ -14,19 +14,19 @@ export interface Operation {
 }
 
 export function initSocket() {
-  socket = io('http://10.161.229.242:5173', {
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 10000,
-    randomizationFactor: 0.5,
-    timeout: 30000,
-    autoConnect: true,
-    transports: ['websocket', 'polling'],
-    upgrade: true,
-    forceNew: true,
-    rejectUnauthorized: false,
-  })
+  // socket = io('http://10.161.229.242:5173', {
+  //   reconnection: true,
+  //   reconnectionAttempts: Infinity,
+  //   reconnectionDelay: 1000,
+  //   reconnectionDelayMax: 10000,
+  //   randomizationFactor: 0.5,
+  //   timeout: 30000,
+  //   autoConnect: true,
+  //   transports: ['websocket', 'polling'],
+  //   upgrade: true,
+  //   forceNew: true,
+  //   rejectUnauthorized: false,
+  // })
 
   // 延迟获取 store 引用
   import('../stores/schedule').then(module => {

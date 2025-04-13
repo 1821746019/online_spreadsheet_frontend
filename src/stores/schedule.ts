@@ -24,7 +24,7 @@ export interface Course {
   hasConflict?: boolean
   week: number
   classId: number
-  semester: string
+  // semester: string
 }
 
 export const useScheduleStore = defineStore(
@@ -49,7 +49,7 @@ export const useScheduleStore = defineStore(
       hasConflict?: boolean
       week: number
       classId: number
-      semester: string
+      // semester: string
     }
 
     // 获取课表数据
@@ -60,14 +60,14 @@ export const useScheduleStore = defineStore(
       try {
         const response = await axios.get(`/classes/${currentClass.value.id}/sheet`, {
           params: {
-            semester: currentSemester.value,
+            // semester: currentSemester.value,
             week
           }
         })
         timetable.value = response.data.map((course: any) => ({
           ...course,
           classId: currentClass.value?.id || 0,
-          semester: currentSemester.value
+          // semester: currentSemester.value
         }))
       } catch (error) {
         console.error('获取课表失败:', error)
@@ -88,14 +88,14 @@ export const useScheduleStore = defineStore(
     // 设置当前班级
     async function setCurrentClass(classInfo: Class) {
       currentClass.value = classInfo
-      await fetchTimetable(currentWeek.value)
+      //await fetchTimetable(currentWeek.value)
     }
 
     // 设置当前学期
-    async function setCurrentSemester(semester: string) {
-      currentSemester.value = semester
-      await fetchTimetable(currentWeek.value)
-    }
+    // async function setCurrentSemester(semester: string) {
+    //   currentSemester.value = semester
+    //   await fetchTimetable(currentWeek.value)
+    // }
 
     // 计算属性：按天分组
     const groupedTimetable = computed(() => {
@@ -105,8 +105,9 @@ export const useScheduleStore = defineStore(
         courses: timetable.value.filter((c) =>
           c.day === day &&
           c.week === currentWeek.value &&
-          c.classId === currentClass.value?.id &&
-          c.semester === currentSemester.value
+          c.classId === currentClass.value?.id
+          // &&
+          // c.semester === currentSemester.value
         ),
       }))
     })
@@ -115,8 +116,9 @@ export const useScheduleStore = defineStore(
       return timetable.value.filter((c) =>
         c.day === day &&
         c.week === currentWeek.value &&
-        c.classId === currentClass.value?.id &&
-        c.semester === currentSemester.value
+        c.classId === currentClass.value?.id
+        // &&
+        // c.semester === currentSemester.value
       )
     }
 
@@ -128,7 +130,7 @@ export const useScheduleStore = defineStore(
           const finalCourse = {
             ...updatedCourse,
             classId: currentClass.value?.id || 0,
-            semester: currentSemester.value,
+            // semester: currentSemester.value,
             lastUpdatedBy: auth.$state.user?.username || '未知用户',
             week: updatedCourse.week || currentWeek.value
           }
@@ -167,7 +169,7 @@ export const useScheduleStore = defineStore(
           c.start === course.start &&
           c.week === course.week &&
           c.classId === course.classId &&
-          c.semester === course.semester &&
+          // c.semester === course.semester &&
           c.id !== course.id &&
           (c.teacher === course.teacher || c.room === course.room)
       })
@@ -242,7 +244,7 @@ export const useScheduleStore = defineStore(
       fetchTimetable,
       fetchClasses,
       setCurrentClass,
-      setCurrentSemester,
+      // setCurrentSemester,
       getCoursesByDay,
       updateCourse,
       removeCourse,

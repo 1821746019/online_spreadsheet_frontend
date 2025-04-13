@@ -1,7 +1,7 @@
 <template>
   <div class="editor-view">
     <div class="header-selectors">
-      <el-select
+      <!-- <el-select
         v-model="selectedClass"
         placeholder="选择班级"
         @change="handleClassChange"
@@ -13,9 +13,9 @@
           :label="classItem.name"
           :value="classItem"
         />
-      </el-select>
-
-      <el-select
+      </el-select> -->
+    <h2>{{ selectedClass }}</h2>
+      <!-- <el-select
         v-model="selectedSemester"
         placeholder="选择学期"
         @change="handleSemesterChange"
@@ -27,7 +27,7 @@
           :label="semester"
           :value="semester"
         />
-      </el-select>
+      </el-select> -->
     </div>
 
     <CourseDataform></CourseDataform>
@@ -41,13 +41,13 @@
     </div>
 
     <ScheduleGrid @courseMoved="handleCourseMoved" />
-    <div class="collaborators">
+    <!-- <div class="collaborators">
       <h3>协作者:</h3>
       <div v-for="user in store.collaborators" :key="user.id" class="collaborator">
         {{ user.name }}
         <span class="color-indicator" :style="{ backgroundColor: user.color }"></span>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -58,30 +58,37 @@ import ScheduleGrid from '../components/ScheduleGrid.vue'
 import { emitOperation } from '../utils/socket'
 import { useAuthStore } from '../stores/auth'
 import CourseDataform from '../components/CourseDataform.vue'
-import { fetchClasses } from '../utils/api'
-
+import { fetchClassById } from '../utils/api'
+import { useRoute } from 'vue-router'
 const auth = useAuthStore()
 const store = useScheduleStore()
 const classes = ref([])
 const selectedClass = ref(null)
-const selectedSemester = ref('2024-2025-第一学期')
+// const selectedSemester = ref('2024-2025-第一学期')
+// 定义班级信息接口
+const router = useRoute()
+const classInfo = {
+  id: router.params.id|| 0,
+}
+
 
 // 预定义的学期列表
-const semesters = ref([
-  '2024-2025-第一学期',
-  '2024-2025-第二学期'
-])
+// const semesters = ref([
+//   '2024-2025-第一学期',
+//   '2024-2025-第二学期'
+// ])
 
 onMounted(async () => {
   // 初始化班级数据
-  const classRes = await fetchClasses()
-  classes.value = classRes.data?.list || []
-
-  // 设置默认值
-  if (classes.value.length > 0) {
-    selectedClass.value = classes.value[0]
-    store.setCurrentClass(classes.value[0])
+  if (!classInfo.id) {
+    console.error('班级ID未提供')
+    return
   }
+  const classRes = await fetchClassById(classInfo.id)
+  console.log('班级信息:', classRes.data.id)
+  selectedClass.value = classRes.data.name
+  // console.log('选中的班级:', selectedClass)
+  store.setCurrentClass(classRes.data)
 
   // 设置默认学期
   store.setCurrentSemester(selectedSemester.value)
@@ -91,9 +98,9 @@ function handleClassChange(classInfo) {
   store.setCurrentClass(classInfo)
 }
 
-function handleSemesterChange(semester) {
-  store.setCurrentSemester(semester)
-}
+// function handleSemesterChange(semester) {
+//   store.setCurrentSemester(semester)
+// }
 
 function handleCourseMoved(course) {
   emitOperation({
@@ -116,14 +123,14 @@ function addNewCourse() {
           }),
     day: 'Monday',
     start: '08:30',
-    end: '9:10',
+    end: '9:55',
     course: '新课程',
     teacher: '新老师',
     room: '未分配',
     week: store.currentWeek,
     lastUpdatedBy: auth.user?.username || 'unknown',
     classId: store.currentClass?.id || 0,
-    semester: store.currentSemester || '2024-2025-第一学期'
+    // semester: store.currentSemester || '2024-2025-第一学期'
   }
   store.timetable.push(newCourse)
   emitOperation({

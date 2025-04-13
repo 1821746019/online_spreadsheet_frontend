@@ -120,7 +120,7 @@ interface Course {
   room: string
   lastUpdatedBy: string | undefined
   classId: number
-  semester: string
+  // semester: string
 }
 
 const store = useScheduleStore()
@@ -129,8 +129,9 @@ const tableKey = ref(0)
 
 const tableData = computed(() => {
   return store.timetable.filter(course =>
-    course.classId === store.currentClass?.id &&
-    course.semester === store.currentSemester
+    course.classId === store.currentClass?.id
+  //   &&
+  //  course.semester === store.currentSemester
   )
 })
 
@@ -158,7 +159,7 @@ function saveCourse() {
     const updatedCourse = {
       ...editingCourse.value,
       classId: store.currentClass?.id || 0,
-      semester: store.currentSemester || '2024-2025-第一学期',
+      // semester: store.currentSemester || '2024-2025-第一学期',
       lastUpdatedBy: auth.user?.username || '未知用户'
     }
 
