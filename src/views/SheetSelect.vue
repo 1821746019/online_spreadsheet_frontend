@@ -72,7 +72,7 @@
         v-for="sheet in sheets"
         :key="sheet.id"
         class="sheet-card"
-        @click="goToSheet(<number>sheet.id)"
+        @click="goToSheet(<Sheet>sheet)"
       >
         <div class="sheet-header">
           <h3>{{ sheet.name }}</h3>
@@ -195,8 +195,9 @@ const deleteSheet = async (id: number) => {
 }
 
 // 跳转到指定工作表
-const goToSheet = (id: number) => {
-  router.push(`/class/${<number>class_id}/sheet/${id}`)
+const goToSheet = (sheet:Sheet) => {
+  scheduleStore.setCurrentSheet(sheet)
+  router.push(`/class/${<number>class_id}/sheet/${sheet.id}`)
 }
 
 // 格式化日期显示
@@ -277,7 +278,7 @@ const formatDate = (date?: Date) => {
 
 .sheet-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 5fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
 }
 

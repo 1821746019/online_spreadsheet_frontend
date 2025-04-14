@@ -62,13 +62,13 @@ import { fetchClassById } from '../utils/api'
 import { useRoute } from 'vue-router'
 const auth = useAuthStore()
 const store = useScheduleStore()
-const classes = ref([])
-const selectedClass = ref(null)
+// const classes = ref([])
+const selectedClass = store.currentClass?.name || '班级名称'
 // const selectedSemester = ref('2024-2025-第一学期')
 // 定义班级信息接口
 const router = useRoute()
 const classInfo = {
-  id: router.params.id|| 0,
+  id: store.currentClass?.id || 0
 }
 
 
@@ -78,25 +78,10 @@ const classInfo = {
 //   '2024-2025-第二学期'
 // ])
 
-onMounted(async () => {
-  // 初始化班级数据
-  if (!classInfo.id) {
-    console.error('班级ID未提供')
-    return
-  }
-  const classRes = await fetchClassById(classInfo.id)
-  console.log('班级信息:', classRes.data.id)
-  selectedClass.value = classRes.data.name
-  // console.log('选中的班级:', selectedClass)
-  store.setCurrentClass(classRes.data)
 
-  // 设置默认学期
-  store.setCurrentSemester(selectedSemester.value)
-})
-
-function handleClassChange(classInfo) {
-  store.setCurrentClass(classInfo)
-}
+// function handleClassChange(classInfo) {
+//   store.setCurrentClass(classInfo)
+// }
 
 // function handleSemesterChange(semester) {
 //   store.setCurrentSemester(semester)

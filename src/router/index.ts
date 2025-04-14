@@ -31,7 +31,7 @@ const router = createRouter({
         {
           path: '/class/:class_id/sheet/:sheet_id',  // 动态路由参数
           name: 'Sheet',
-          component: () => import('../views/SheetSelect.vue'), // 课表组件
+          component: () => import('../views/EditorView.vue'), // 课表组件
           props: true // 将路由参数作为props传递给组件
         },
         {

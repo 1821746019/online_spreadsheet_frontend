@@ -26,14 +26,26 @@ export interface Course {
   classId: number
   // semester: string
 }
-
+export interface Sheet {
+  class_id?: number;
+  col?: number;
+  create_time?: Date;
+  creator_id?: number;
+  id?: number;
+  name?: string;
+  row?: number;
+  update_time?: Date;
+  week?: number;
+  [property: string]: any;
+}
 export const useScheduleStore = defineStore(
   'schedule',
   () => {
     const timetable = ref<Course[]>([])
     const currentWeek = ref(1)
     const currentClass = ref<Class | null>(null)
-    const currentSemester = ref('2024-2025-第一学期')
+    const currentSheet= ref<Sheet | null>(null)
+    // const currentSemester = ref('2024-2025-第一学期')
     const collaborators = ref([])
     const auth = useAuthStore()
 
@@ -58,7 +70,8 @@ export const useScheduleStore = defineStore(
       if (!currentClass.value) return
 
       try {
-        const response = await axios.get(`/classes/${currentClass.value.id}/sheet`, {
+        const response = await axios.get(`/classes/${currentClass.value.id}/sheet`
+          , {
           params: {
             // semester: currentSemester.value,
             week
@@ -75,22 +88,19 @@ export const useScheduleStore = defineStore(
     }
 
     // 获取班级列表
-    async function fetchClasses() {
-      try {
-        const response = await axios.get('/classes')
-        return response.data.list || []
-      } catch (error) {
-        console.error('获取班级列表失败:', error)
-        return []
-      }
-    }
+
 
     // 设置当前班级
     async function setCurrentClass(classInfo: Class) {
       currentClass.value = classInfo
       //await fetchTimetable(currentWeek.value)
     }
+    //设置当前工作表
+    async function setCurrentSheet(sheetInfo: Sheet) {
+      currentSheet.value = sheetInfo
+      console.log('当前工作表:', currentSheet.value)
 
+    }
     // 设置当前学期
     // async function setCurrentSemester(semester: string) {
     //   currentSemester.value = semester
@@ -238,12 +248,12 @@ export const useScheduleStore = defineStore(
       timetable,
       currentWeek,
       currentClass,
-      currentSemester,
+      // currentSemester,
       collaborators,
       groupedTimetable,
       fetchTimetable,
-      fetchClasses,
       setCurrentClass,
+      setCurrentSheet,
       // setCurrentSemester,
       getCoursesByDay,
       updateCourse,
