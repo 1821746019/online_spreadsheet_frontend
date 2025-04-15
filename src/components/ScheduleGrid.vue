@@ -1,35 +1,53 @@
 <template>
-  <div class="week-selector">
-    <el-select v-model="store.currentweek" placeholder="选择周次" @change="handleWeekChange">
-      <el-option v-for="week in 20" :key="week" :label="`第 ${week} 周`" :value="week" />
-    </el-select>
-  </div>
-  <div class="schedule-grid">
-    <div class="header-row">
-      <div class="time-header" style="background-color: #2d3748">时间</div>
-      <div v-for="day in days" :key="day" class="day-header">
-        {{ dayMap[day] }}
-      </div>
-    </div>
-    <div class="time-grid">
-      <div class="time-column">
-        <div v-for="time in realtime" :key="time" class="time-slot">
-          {{ time }}
-        </div>
-      </div>
-
-      <div v-for="day in days" :key="day" class="day-column" @dragover.prevent="handleDragOver" @dragenter.prevent
-        @drop="handleDrop($event, day)">
-        <div v-for="time in realtime" :key="time" class="time-slot" :data-time="day + '-' + time"></div>
-
-        <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
-          :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
-          @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
+  <div class="course-builder-container">
+    <!-- 新建课程按钮和待拖动区 -->
+    <div class="course-creator">
+      <el-button type="primary" @click="showCreateDialog">新建课程</el-button>
+      <div class="course-pool" ref="coursePool">
+        <div v-for="course in draftCourses" :key="course.id"
+             class="course-block draft" draggable="true"
+             @dragstart="handleDragStart($event, course)"
+             @dragend="handleDragEnd">
           <div class="course-content">
             <span class="course-title">{{ course.course }}</span>
             <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
-            <div v-if="course.lastUpdatedBy" class="user-indicator"
-              :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="week-selector">
+      <el-select v-model="store.currentweek" placeholder="选择周次" @change="handleWeekChange">
+        <el-option v-for="week in 20" :key="week" :label="`第 ${week} 周`" :value="week" />
+      </el-select>
+    </div>
+    <div class="schedule-grid">
+      <div class="header-row">
+        <div class="time-header" style="background-color: #2d3748">时间</div>
+        <div v-for="day in days" :key="day" class="day-header">
+          {{ dayMap[day] }}
+        </div>
+      </div>
+      <div class="time-grid">
+        <div class="time-column">
+          <div v-for="time in realtime" :key="time" class="time-slot">
+            {{ time }}
+          </div>
+        </div>
+
+        <div v-for="day in days" :key="day" class="day-column" @dragover.prevent="handleDragOver" @dragenter.prevent
+          @drop="handleDrop($event, day)">
+          <div v-for="time in realtime" :key="time" class="time-slot" :data-time="day + '-' + time"></div>
+
+          <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
+            :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
+            @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
+            <div class="course-content">
+              <span class="course-title">{{ course.course }}</span>
+              <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
+              <div v-if="course.lastUpdatedBy" class="user-indicator"
+                :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -78,24 +96,28 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 
 const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
 const forceUpdate = ref(0)
 
+// 新增状态
+const draftCourses = ref([])
+const coursePool = ref(null)
 
-// 监听store变化
-// watch(() => [store.currentWeek, store.currentClass, store.currentSemester], async (newVal, oldVal) => {
-//   console.log('Store changed - new:', newVal, 'old:', oldVal)
-//   forceUpdate.value++
-//   await store.fetchTimetable(store.currentWeek)
-//   forceUpdate.value++
-// }, { immediate: true, deep: true })
+// 计算属性：按行分组的小方块
+const groupedDraftCourses = computed(() => {
+  const result = []
+  const itemsPerRow = 5
+  for (let i = 0; i < draftCourses.value.length; i += itemsPerRow) {
+    result.push(draftCourses.value.slice(i, i + itemsPerRow))
+  }
+  return result
+})
 
 async function handleWeekChange(week) {
-  // console.log('Handling week change to:', week)
   try {
     store.currentWeek = week
     await store.fetchTimetable(week)
@@ -147,14 +169,11 @@ const dayMap = {
 }
 
 function getCoursesByDay(day) {
-  // console.log('Current week:', store.currentWeek)
   const courses = store.timetable.filter(c => {
-    // 检查课程是否匹配当前周次或跨周
     const matchesWeek = c.week === store.currentWeek ||
                        (c.weeks && c.weeks.includes(store.currentWeek))
     return c.day === day && matchesWeek
   })
-  //  console.log('Filtered courses:', courses)
   return courses
 }
 
@@ -186,15 +205,19 @@ function handleDrop(e, day) {
     return
   }
 
-  const originalCourse = store.timetable.find(c => c.id === courseId)
+  // 先从待拖动区查找课程，再从正式课程中查找
+  let originalCourse = draftCourses.value.find(c => c.id === courseId)
+  if (!originalCourse) {
+    originalCourse = store.timetable.find(c => c.id === courseId)
+  }
   if (!originalCourse) return
 
   // 计算原课程占用的槽数
   const originalStart = convertTimeToMinutes(originalCourse.start)
   const originalSlotIndex = realtimeTimes.findIndex(t => t.start === originalStart)
-  const originalDuration = realtimeTimes
-    .slice(originalSlotIndex)
-    .findIndex(t => t.end === convertTimeToMinutes(originalCourse.end)) + 1
+  const originalDuration = originalSlotIndex >= 0 ?
+    realtimeTimes.slice(originalSlotIndex)
+      .findIndex(t => t.end === convertTimeToMinutes(originalCourse.end)) + 1 : 1
 
   // 确定新位置
   const newEndSlot = Math.min(slotIndex + originalDuration - 1, realtimeTimes.length - 1)
@@ -206,7 +229,21 @@ function handleDrop(e, day) {
     week: originalCourse.week || store.currentWeek
   }
 
-  store.updateCourse(updatedCourse)
+  // 如果是来自待拖动区的课程，添加到正式课程中
+  if (draftCourses.value.some(c => c.id === courseId)) {
+    console.log('课程移动id', courseId)
+    console.log('课程已添加到正式课程中', draftCourses)
+    store.updateCourse(updatedCourse)
+    if (draftCourses.value.some(c => c.id === courseId)) {
+      // 如果课程在待拖动区，删除它
+      const courseIndex = draftCourses.value.findIndex(c => c.id === courseId)
+      if (courseIndex !== -1) {
+        draftCourses.value.splice(courseIndex, 1)
+      }
+    }
+  } else {
+    store.updateCourse(updatedCourse)
+  }
   emit('courseMoved', updatedCourse)
 }
 
@@ -238,10 +275,25 @@ function handleDblClick(course) {
   editingCourse.value = {
     day: 'Monday',
     start: '8:30',
-    end: '9:10',
+    end: '9:55',
     week: store.currentWeek,
     ...(course ? JSON.parse(JSON.stringify(course)) : {}),
     id: course?.id || crypto.randomUUID()
+  }
+  showEditDialog.value = true
+}
+
+// 显示创建对话框
+function showCreateDialog() {
+  editingCourse.value = {
+    id: crypto.randomUUID(),
+    course: '新课程',
+    teacher: '教师',
+    room: '教室',
+    day: 'Monday',
+    start: '8:30',
+    end: '9:55',
+    week: store.currentWeek
   }
   showEditDialog.value = true
 }
@@ -254,7 +306,15 @@ function saveCourse() {
       id: editingCourse.value.id,
       day: editingCourse.value.day || 'Monday'
     }
-    store.updateCourse(courseToSave)
+
+    // 如果是新课程，添加到待拖动区
+    if (!store.timetable.some(c => c.id === courseToSave.id) &&
+        !draftCourses.value.some(c => c.id === courseToSave.id)) {
+      draftCourses.value.push({...courseToSave})
+    } else {
+      store.updateCourse(courseToSave)
+    }
+
     showEditDialog.value = false
   }
 }
@@ -262,9 +322,36 @@ function saveCourse() {
 const handleDelete = () => {
   if (editingCourse.value && confirm('确认删除该课程？')) {
     store.removeCourse(editingCourse.value.id)
+    draftCourses.value = draftCourses.value.filter(c => c.id !== editingCourse.value.id)
     showEditDialog.value = false
   }
 }
+
+// 初始化待拖动区
+// onMounted(() => {
+//   draftCourses.value = [
+//     {
+//       id: 'sample1',
+//       course: '数学',
+//       teacher: '张老师',
+//       room: '101',
+//       day: 'Monday',
+//       start: '8:30',
+//       end: '9:55',
+//       week: store.currentWeek
+//     },
+//     {
+//       id: 'sample2',
+//       course: '英语',
+//       teacher: '李老师',
+//       room: '202',
+//       day: 'Tuesday',
+//       start: '10:15',
+//       end: '11:40',
+//       week: store.currentWeek
+//     }
+//   ]
+// })
 </script>
 
 <style scoped>
@@ -627,6 +714,83 @@ const handleDelete = () => {
   .delete-btn {
     flex: 1;
     justify-content: center;
+  }
+}
+
+.course-builder-container {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.course-creator {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.course-pool {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+  min-height: 100px;
+  padding: 15px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 2px dashed #e2e8f0;
+  align-items: start;
+}
+
+.course-block.draft {
+  background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+  border-color: #68d391;
+  cursor: grab;
+  height: 80px;
+  margin: 0;
+  width: 80px;
+  position: static;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.course-block.draft:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .course-pool {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .course-pool {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .course-block.draft {
+    height: 70px;
+    padding: 8px;
+  }
+
+  .course-title {
+    font-size: 0.85em;
+  }
+
+  .course-info {
+    font-size: 0.75em;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-pool {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
   }
 }
 </style>

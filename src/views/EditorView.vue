@@ -6,35 +6,13 @@
 
     <CourseDataform></CourseDataform>
     <hr>
-    <div class="toolbar">
+    <!-- <div class="toolbar">
       <button @click="addNewCourse" class="feat-btn">添加课程</button>
       <div class="current-user">
         当前用户: {{ auth.user?.username }}
         <span class="color-indicator" :style="{ backgroundColor: auth.user?.color || '#cccccc' }"></span>
       </div>
-    </div>
-
-    <div class="course-container">
-    <button @click="addCourse" class="add-button">新建课程</button>
-    <div class="courses-grid">
-      <div
-        v-for="(course, index) in courses"
-        :key="index"
-        class="course-box"
-        @click="selectCourse(index)"
-        :class="{ 'selected': selectedIndex === index }"
-      >
-        <span>课程 {{ index + 1 }}</span>
-        <button class="delete-btn" @click.stop="deleteCourse(index)">×</button>
-      </div>
-    </div>
-  </div>
-
-
-
-
-
-
+    </div> -->
     <ScheduleGrid @courseMoved="handleCourseMoved" />
   </div>
 </template>
@@ -201,105 +179,4 @@ const selectCourse = (index) => {
 }
 
 
-.course-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.add-button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  margin-bottom: 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s;
-}
-
-.add-button:hover {
-  background-color: #45a049;
-}
-
-.courses-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.course-box {
-  position: relative;
-  background-color: #f0f0f0;
-  border-radius: 8px;
-  padding: 20px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.course-box:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.course-box.selected {
-  background-color: #e0f7fa;
-  border: 2px solid #4CAF50;
-}
-
-.delete-btn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: #ff5252;
-  color: white;
-  border: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.course-box:hover .delete-btn {
-  opacity: 1;
-}
-
-.delete-btn:hover {
-  background: #ff0000;
-}
-
-@media (max-width: 768px) {
-  .courses-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
-
-  .course-box {
-    height: 100px;
-    padding: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  .courses-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 10px;
-  }
-
-  .course-box {
-    height: 80px;
-    padding: 10px;
-    font-size: 14px;
-  }
-}
 </style>
