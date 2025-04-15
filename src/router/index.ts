@@ -20,19 +20,17 @@ const router = createRouter({
         {
           path: '',
           name: 'class',
-          component: () => import('../views/ClassSelectview.vue'),
+          component: () => import('../components/ClassSelect.vue'),
         },
         {
-          path: '/class/:class_id/sheet',  // 动态路由参数
+          path: '/class/:class_id/sheet', // 动态路由参数
           name: 'SheetSelect',
-          component: () => import('../views/SheetSelect.vue'), // 课表组件
-          props: true // 将路由参数作为props传递给组件
+          component: () => import('../components/SheetSelect.vue'), // 课表组件
         },
         {
-          path: '/class/:class_id/sheet/:sheet_id',  // 动态路由参数
+          path: '/class/:class_id/sheet/:sheet_id', // 动态路由参数
           name: 'Sheet',
           component: () => import('../views/EditorView.vue'), // 课表组件
-          props: true // 将路由参数作为props传递给组件
         },
         {
           path: '/home/editor',
@@ -50,10 +48,10 @@ const router = createRouter({
           component: CommonFormView,
         },
         {
-          path:'/home/course',
-          name:'course',
-          component:CourseDataform
-        }
+          path: '/home/course',
+          name: 'course',
+          component: CourseDataform,
+        },
       ],
       meta: { requiresAuth: true },
     },

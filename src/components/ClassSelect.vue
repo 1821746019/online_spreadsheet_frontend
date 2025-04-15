@@ -1,7 +1,12 @@
 <template>
   <div class="class-select-container">
-    <h1 class="page-title">选择班级</h1>
-    <button @click="showCreateDialog = true">创建班级</button>
+    <div class="header">
+      <h1 class="page-title">选择班级</h1>
+      <button class="create-btn" @click="showCreateDialog = true">
+        <span class="btn-icon">+</span>
+        <span class="btn-text">创建班级</span>
+      </button>
+    </div>
 
     <!-- 创建班级对话框 -->
     <div v-if="showCreateDialog" class="modal-overlay">
@@ -19,7 +24,7 @@
             >
           </div>
 
-          <div class="form-group">
+          <div class="form-group checkbox-group">
             <label>
               <input
                 type="checkbox"
@@ -41,8 +46,8 @@
           </div>
 
           <div class="form-actions">
-            <button type="button" @click="showCreateDialog = false">取消</button>
-            <button type="submit">创建</button>
+            <button type="button" class="cancel-btn" @click="showCreateDialog = false">取消</button>
+            <button type="submit" class="submit-btn">创建</button>
           </div>
         </form>
       </div>
@@ -56,7 +61,9 @@
         @click="selectClass(classItem)"
       >
         <div class="class-name">{{ classItem.name }}</div>
-        <button class="delete-btn" @click.stop="deleteClass(classItem.id)">删除</button>
+        <button class="delete-btn" @click.stop="deleteClass(classItem.id)">
+          <span class="delete-icon">×</span>
+        </button>
         <div class="class-meta">
           <div class="meta-item">
             <span class="meta-label">创建时间:</span>
@@ -70,7 +77,6 @@
       </div>
     </div>
   </div>
-
 </template>
 
 <script lang="ts">
@@ -173,81 +179,111 @@ export default defineComponent({
 
 <style scoped>
 .class-select-container {
-  max-width: 1500px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 30px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
 }
 
 .page-title {
-  text-align: center;
-  margin-bottom: 30px;
-  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
 }
 
-button {
-  padding: 10px 20px;
-  background-color: #3a7bd5;
+.create-btn {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background: linear-gradient(90deg, #3a7bd5, #00d2ff);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-button:hover {
-  background-color: #2c5fb3;
+.create-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+  font-size: 18px;
+  margin-right: 8px;
 }
 
 .class-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 25px;
+  grid-template-columns: repeat(5, minmax(250px, 1fr));
+  gap: 20px;
 }
 
 .class-card {
-  background-color: #fff;
+  background-color: white;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 25px;
+  padding: 20px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   position: relative;
-  min-height: 120px;
+  border: 1px solid #e2e8f0;
 }
 
 .class-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e0;
 }
 
 .class-name {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 15px;
+  padding-right: 30px;
 }
 
 .delete-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 3px 8px;
-  font-size: 12px;
-  background-color: #ff4444;
+  top: 15px;
+  right: 15px;
+  width: 24px;
+  height: 24px;
+  background-color: #f56565;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .delete-btn:hover {
-  background-color: #cc0000;
+  background-color: #e53e3e;
+  transform: scale(1.1);
+}
+
+.delete-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .class-meta {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  font-size: 13px;
 }
 
 .meta-item {
@@ -256,13 +292,11 @@ button:hover {
 }
 
 .meta-label {
-  color: #7f8c8d;
-  font-size: 14px;
+  color: #718096;
 }
 
 .meta-value {
-  color: #34495e;
-  font-size: 14px;
+  color: #4a5568;
 }
 
 /* 模态框样式 */
@@ -283,14 +317,17 @@ button:hover {
   background-color: white;
   padding: 30px;
   border-radius: 8px;
-  width: 500px;
+  width: 450px;
   max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 .modal-content h2 {
   margin-top: 0;
-  margin-bottom: 20px;
-  color: #2c3e50;
+  margin-bottom: 25px;
+  color: #2d3748;
+  font-size: 22px;
+  font-weight: 600;
 }
 
 .form-group {
@@ -300,85 +337,100 @@ button:hover {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-weight: bold;
+  font-weight: 500;
+  color: #4a5568;
 }
 
 .form-group input[type="text"],
 .form-group input[type="number"] {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
 }
 
-.form-group input[type="checkbox"] {
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus {
+  outline: none;
+  border-color: #3a7bd5;
+  box-shadow: 0 0 0 2px rgba(58, 123, 213, 0.2);
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-group input[type="checkbox"] {
   margin-right: 10px;
 }
 
 .required {
-  color: red;
+  color: #f56565;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 15px;
   margin-top: 30px;
 }
 
-.form-actions button {
+.cancel-btn {
   padding: 8px 16px;
+  background-color: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.form-actions button[type="button"] {
-  background-color: #e0e0e0;
-  color: #333;
+.cancel-btn:hover {
+  background-color: #cbd5e0;
 }
 
-.form-actions button[type="button"]:hover {
-  background-color: #d0d0d0;
+.submit-btn {
+  padding: 8px 16px;
+  background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
+
+.submit-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
+  .class-select-container {
+    margin-left: 0;
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
   .class-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
-  .class-card {
-    min-height: 100px;
-  }
+
   .modal-content {
     width: 90%;
-  }
-  .modal-content h2 {
-    font-size: 24px;
-  }
-  .modal-content .form-group label {
-    font-size: 16px;
-  }
-  .modal-content .form-group input[type="text"],
-  .modal-content .form-group input[type="number"] {
-    font-size: 16px;
-  }
-  .modal-content .form-actions button {
-    font-size: 16px;
-  }
-  .modal-content .form-actions button[type="button"] {
-    font-size: 16px;
-  }
-  .modal-content .form-actions button[type="submit"] {
-    font-size: 16px;
-  }
-  .modal-content .form-actions {
-    gap: 20px;
-  }
-  .modal-content .form-actions button {
-    padding: 10px 20px;
-  }
-  .modal-content .form-actions button[type="button"] {
-    padding: 10px 20px;
-  }
-  .modal-content .form-actions button[type="submit"] {
-    padding: 10px 20px;
+    padding: 20px;
   }
 
+  .form-actions {
+    justify-content: space-between;
+  }
 }
 </style>

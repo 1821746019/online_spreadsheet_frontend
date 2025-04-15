@@ -48,22 +48,6 @@ export const useScheduleStore = defineStore(
     // const currentSemester = ref('2024-2025-第一学期')
     const collaborators = ref([])
     const auth = useAuthStore()
-
-    interface Course {
-      id: string
-      day: string
-      start: string
-      end: string
-      course: string
-      teacher: string
-      room: string
-      lastUpdatedBy: any
-      hasConflict?: boolean
-      week: number
-      classId: number
-      // semester: string
-    }
-
     // 获取课表数据
     async function fetchTimetable(week: number) {
       currentWeek.value = week
@@ -248,6 +232,7 @@ export const useScheduleStore = defineStore(
       timetable,
       currentWeek,
       currentClass,
+      currentSheet,
       // currentSemester,
       collaborators,
       groupedTimetable,

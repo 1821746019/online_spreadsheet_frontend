@@ -88,7 +88,7 @@ const getContrastColor = (hexColor: string) => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 900;
-  margin-left: 220px;
+  margin-left: 200px;
   transition: margin-left 0.3s ease;
 }
 

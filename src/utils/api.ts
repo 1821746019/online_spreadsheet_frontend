@@ -150,13 +150,19 @@ export interface move {
 export const moveDragItem = (drag_item_id: number,class_id: number, sheet_id: number,move: move) => instance.put(`/classes/${class_id}/sheet/${sheet_id}/drag-item/${drag_item_id}/move`, move);
 
 //获取单元格数据
-export const fetchCellData = (classId: number, sheetId: number, rowIndex: number, colIndex: number) => {
-  return instance.get(`/classes/${classId}/sheet/${sheetId}/cell`, {
-    params: {
-      row_index: rowIndex,
-      col_index: colIndex
-    }
-  });
+export interface Cell {
+  col_index?: number;
+  content?: string;
+  create_time?: Date;
+  id?: number;
+  item_id?: number | null;
+  row_index?: number;
+  sheet_id?: number;
+  update_time?: Date;
+  [property: string]: any;
+}
+export const fetchCellData = (classId: number, sheetId: number) => {
+  return instance.get(`/classes/${classId}/sheet/${sheetId}/cell`);
 };
 
 

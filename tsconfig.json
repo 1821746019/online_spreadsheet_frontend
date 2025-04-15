@@ -11,9 +11,9 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "lib": ["esnext", "dom"],
-    "allowJs": true, 
-    "noImplicitAny": false,
+    "allowJs": true,
+    "noImplicitAny": false
   },
-  "include": ["src/**/*.ts", "src/**/*.vue"],
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/components/ClassSelect.vue"],
   "exclude": ["node_modules"]
 }
