@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { emitOperation, type Operation } from '../utils/socket'
-import axios from '../utils/api'
+import axios, { fetchCellData,fetchDragItem } from '../utils/api'
 import { useAuthStore } from './auth'
+import { Item } from 'ant-design-vue/es/menu'
 
 export interface Class {
   id: number
@@ -22,7 +23,7 @@ export interface Course {
   room: string
   lastUpdatedBy: any
   hasConflict?: boolean
-  week: number
+  week_type: 'single' | 'double' | 'douyou'
   classId: number
   // semester: string
 }
@@ -54,18 +55,19 @@ export const useScheduleStore = defineStore(
       if (!currentClass.value) return
 
       try {
-        const response = await axios.get(`/classes/${currentClass.value.id}/sheet`
-          , {
-          params: {
-            // semester: currentSemester.value,
-            week
-          }
-        })
-        timetable.value = response.data.map((course: any) => ({
-          ...course,
-          classId: currentClass.value?.id || 0,
-          // semester: currentSemester.value
-        }))
+        const cellresponse = fetchCellData(currentClass.value.id, currentSheet.value?.id || 0)
+        const cellData = (await cellresponse).data.cells
+        console.log('获取课表:', (cellData))
+        const dragItemResponse = (cellData.map(Item => Item.item_id)).map((itemId: number) => fetchDragItem(itemId))
+        // console.log('获取拖动元素响应:', Promise.all(dragItemResponse))
+        const dragItemData = (await Promise.all(dragItemResponse)).map((response: any) => response.data)
+        console.log('获取拖动元素:', dragItemData)
+
+        // timetable.value = response.data.map((course: any) => ({
+        //   ...course,
+        //   classId: currentClass.value?.id || 0,
+        //   // semester: currentSemester.value
+        // }))
       } catch (error) {
         console.error('获取课表失败:', error)
       }
@@ -98,7 +100,9 @@ export const useScheduleStore = defineStore(
         day,
         courses: timetable.value.filter((c) =>
           c.day === day &&
-          c.week === currentWeek.value &&
+          (c.week_type === 'douyou' ||
+           (c.week_type === 'single' && currentWeek.value % 2 === 1) ||
+           (c.week_type === 'double' && currentWeek.value % 2 === 0)) &&
           c.classId === currentClass.value?.id
           // &&
           // c.semester === currentSemester.value
@@ -109,7 +113,9 @@ export const useScheduleStore = defineStore(
     function getCoursesByDay(day: string) {
       return timetable.value.filter((c) =>
         c.day === day &&
-        c.week === currentWeek.value &&
+        (c.week_type === 'douyou' ||
+         (c.week_type === 'single' && currentWeek.value % 2 === 1) ||
+         (c.week_type === 'double' && currentWeek.value % 2 === 0)) &&
         c.classId === currentClass.value?.id
         // &&
         // c.semester === currentSemester.value
@@ -126,7 +132,7 @@ export const useScheduleStore = defineStore(
             classId: currentClass.value?.id || 0,
             // semester: currentSemester.value,
             lastUpdatedBy: auth.$state.user?.username || '未知用户',
-            week: updatedCourse.week || currentWeek.value
+            week_type: updatedCourse.week_type || 'douyou'
           }
 
           if (index > -1) {
@@ -136,10 +142,7 @@ export const useScheduleStore = defineStore(
             timetable.value.push(finalCourse)
           }
 
-          timetable.value.sort((a, b) => {
-            if (a.week !== b.week) return a.week - b.week
-            return a.id.localeCompare(b.id)
-          })
+          timetable.value.sort((a, b) => a.id.localeCompare(b.id))
 
           checkConflicts(finalCourse)
           emitOperation({
@@ -161,7 +164,7 @@ export const useScheduleStore = defineStore(
         c.hasConflict =
           c.day === course.day &&
           c.start === course.start &&
-          c.week === course.week &&
+          c.week_type === course.week_type &&
           c.classId === course.classId &&
           // c.semester === course.semester &&
           c.id !== course.id &&

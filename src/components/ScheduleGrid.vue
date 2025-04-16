@@ -17,7 +17,7 @@
     </div>
 
     <div class="week-selector">
-      <el-select v-model="store.currentweek" placeholder="选择周次" @change="handleWeekChange">
+      <el-select v-model="store.currentweek" placeholder="第 1 周" @change="handleWeekChange">
         <el-option v-for="week in 20" :key="week" :label="`第 ${week} 周`" :value="week" />
       </el-select>
     </div>
@@ -79,6 +79,14 @@
           <label>结束时间</label>
           <el-input v-model="editingCourse.end" type="text" class="modern-input"></el-input>
         </div>
+        <div class="form-group">
+          <label>周次类型</label>
+          <el-select v-model="editingCourse.week_type" class="modern-input">
+            <el-option label="单周" value="single" />
+            <el-option label="双周" value="double" />
+            <el-option label="都有" value="douyou" />
+          </el-select>
+        </div>
         <div class="button-group">
           <button @click="showEditDialog = false" class="cancel-btn">
             <span>取消</span>
@@ -101,21 +109,10 @@ import { useScheduleStore } from '../stores/schedule'
 
 const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
-const forceUpdate = ref(0)
 
 // 新增状态
 const draftCourses = ref([])
 const coursePool = ref(null)
-
-// 计算属性：按行分组的小方块
-const groupedDraftCourses = computed(() => {
-  const result = []
-  const itemsPerRow = 5
-  for (let i = 0; i < draftCourses.value.length; i += itemsPerRow) {
-    result.push(draftCourses.value.slice(i, i + itemsPerRow))
-  }
-  return result
-})
 
 async function handleWeekChange(week) {
   try {
@@ -170,8 +167,9 @@ const dayMap = {
 
 function getCoursesByDay(day) {
   const courses = store.timetable.filter(c => {
-    const matchesWeek = c.week === store.currentWeek ||
-                       (c.weeks && c.weeks.includes(store.currentWeek))
+        const matchesWeek = c.week_type === 'douyou' ||
+                       (c.week_type === 'single' && store.currentWeek % 2 === 1) ||
+                       (c.week_type === 'double' && store.currentWeek % 2 === 0)
     return c.day === day && matchesWeek
   })
   return courses

@@ -1,7 +1,7 @@
 <template>
   <el-table :data="tableData" class="form" :key="tableKey">
     <el-table-column fixed prop="id" label="ID" width="120" />
-    <el-table-column prop="week" label="周次" width="80" />
+    <el-table-column prop="week_type" label="周次" width="80" />
     <el-table-column prop="day" label="星期" width="100" />
     <el-table-column prop="start" label="开始时间" width="120"/>
     <el-table-column prop="end" label="结束时间" width="120"/>
@@ -87,6 +87,14 @@
             v-if="editingCourse"
           />
         </div>
+        <div class="form-group">
+          <label class="input-label">周次类型</label>
+          <el-select v-model="editingCourse.week_type" class="modern-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" v-if="editingCourse">
+            <el-option label="单周" value="single" />
+            <el-option label="双周" value="double" />
+            <el-option label="都有" value="douyou" />
+          </el-select>
+        </div>
         <div class="button-group">
           <button @click="showEditDialog = false" class="cancel-btn">
             <span>取消</span>
@@ -111,7 +119,7 @@ import { ElInput } from 'element-plus'
 
 interface Course {
   id: string
-  week: number
+   week_type: 'single' | 'double' | 'douyou'
   day: string
   start: string
   end: string
