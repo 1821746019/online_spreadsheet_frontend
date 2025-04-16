@@ -17,7 +17,7 @@
     </div>
 
     <div class="week-selector">
-      <el-select v-model="store.currentweek" placeholder="第 1 周" @change="handleWeekChange">
+      <el-select v-model="store.currentWeek" placeholder="第 1 周" @change="handleWeekChange">
         <el-option v-for="week in 20" :key="week" :label="`第 ${week} 周`" :value="week" />
       </el-select>
     </div>
@@ -72,12 +72,16 @@
           <el-input v-model="editingCourse.room" type="text" class="modern-input"></el-input>
         </div>
         <div class="form-group">
-          <label>起始时间</label>
-          <el-input v-model="editingCourse.start" type="text" class="modern-input"></el-input>
+          <label>星期</label>
+          <el-select v-model="editingCourse.col_index" class="modern-input">
+            <el-option v-for="(day, index) in days" :key="day" :label="dayMap[day]" :value="index + 1" />
+          </el-select>
         </div>
         <div class="form-group">
-          <label>结束时间</label>
-          <el-input v-model="editingCourse.end" type="text" class="modern-input"></el-input>
+          <label>时间段</label>
+          <el-select v-model="editingCourse.row_index" class="modern-input">
+            <el-option v-for="(time, index) in realtime" :key="time" :label="time" :value="index + 1" />
+          </el-select>
         </div>
         <div class="form-group">
           <label>周次类型</label>
@@ -104,7 +108,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 
 const store = useScheduleStore()
@@ -118,6 +122,7 @@ async function handleWeekChange(week) {
   try {
     store.currentWeek = week
     await store.fetchTimetable(week)
+   
   } catch (error) {
     console.error('Failed to change week:', error)
   }
@@ -134,27 +139,7 @@ const realtime = [
   '19:00-20:20', // 第11-12节
   '20:30-21:50'  // 第13-14节
 ]
-const realtimeTimes = realtime.map(time => {
-  const [start, end] = time.split('-')
-  const [startHour, startMinute] = start.split(':').map(Number)
-  const [endHour, endMinute] = end.split(':').map(Number)
-  return {
-    start: startHour * 60 + startMinute,
-    end: endHour * 60 + endMinute
-  }
-})
 
-// 时间转换工具函数
-const convertTimeToMinutes = timeStr => {
-  const [hours, minutes] = timeStr.split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-const convertMinutesToTime = minutes => {
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  return `${hours}:${mins.toString().padStart(2, '0')}`
-}
 const dayMap = {
   Monday: '周一',
   Tuesday: '周二',
@@ -166,13 +151,13 @@ const dayMap = {
 }
 
 function getCoursesByDay(day) {
-  const courses = store.timetable.filter(c => {
-        const matchesWeek = c.week_type === 'douyou' ||
-                       (c.week_type === 'single' && store.currentWeek % 2 === 1) ||
-                       (c.week_type === 'double' && store.currentWeek % 2 === 0)
-    return c.day === day && matchesWeek
-  })
-  return courses
+  const dayIndex = days.indexOf(day) + 1;
+  return store.timetable.filter(c => {
+    const matchesWeek = c.week_type === 'douyou' ||
+                      (c.week_type === 'single' && store.currentWeek % 2 === 1) ||
+                      (c.week_type === 'double' && store.currentWeek % 2 === 0);
+    return c.col_index === dayIndex && matchesWeek;
+  });
 }
 
 function handleDragStart(e, course) {
@@ -197,8 +182,8 @@ function handleDrop(e, day) {
   const mouseY = e.clientY - rect.top
 
   // 计算目标时间槽
-  const slotIndex = Math.floor(mouseY / 80)
-  if (slotIndex < 0 || slotIndex >= realtimeTimes.length) {
+  const slotIndex = Math.floor(mouseY / 80) + 1
+  if (slotIndex < 1 || slotIndex > realtime.length) {
     console.warn('超出时间范围')
     return
   }
@@ -210,35 +195,17 @@ function handleDrop(e, day) {
   }
   if (!originalCourse) return
 
-  // 计算原课程占用的槽数
-  const originalStart = convertTimeToMinutes(originalCourse.start)
-  const originalSlotIndex = realtimeTimes.findIndex(t => t.start === originalStart)
-  const originalDuration = originalSlotIndex >= 0 ?
-    realtimeTimes.slice(originalSlotIndex)
-      .findIndex(t => t.end === convertTimeToMinutes(originalCourse.end)) + 1 : 1
-
-  // 确定新位置
-  const newEndSlot = Math.min(slotIndex + originalDuration - 1, realtimeTimes.length - 1)
+  const dayIndex = days.indexOf(day) + 1
   const updatedCourse = {
     ...originalCourse,
-    day,
-    start: convertMinutesToTime(realtimeTimes[slotIndex].start),
-    end: convertMinutesToTime(realtimeTimes[newEndSlot].end),
-    week: originalCourse.week || store.currentWeek
+    col_index: dayIndex,
+    row_index: slotIndex
   }
 
   // 如果是来自待拖动区的课程，添加到正式课程中
   if (draftCourses.value.some(c => c.id === courseId)) {
-    console.log('课程移动id', courseId)
-    console.log('课程已添加到正式课程中', draftCourses)
     store.updateCourse(updatedCourse)
-    if (draftCourses.value.some(c => c.id === courseId)) {
-      // 如果课程在待拖动区，删除它
-      const courseIndex = draftCourses.value.findIndex(c => c.id === courseId)
-      if (courseIndex !== -1) {
-        draftCourses.value.splice(courseIndex, 1)
-      }
-    }
+    draftCourses.value = draftCourses.value.filter(c => c.id !== courseId)
   } else {
     store.updateCourse(updatedCourse)
   }
@@ -246,17 +213,9 @@ function handleDrop(e, day) {
 }
 
 function getCourseStyle(course) {
-  const startMinutes = convertTimeToMinutes(course.start)
-  const endMinutes = convertTimeToMinutes(course.end)
-
-  // 找到对应时间槽
-  const slotIndex = realtimeTimes.findIndex(t => t.start === startMinutes)
-  const durationSlots = realtimeTimes.filter(t =>
-    t.start >= startMinutes && t.end <= endMinutes
-  ).length
   return {
-    top: `${slotIndex * 80}px`,
-    height: `${durationSlots * 60}px`
+    top: `${(course.row_index - 1) * 80}px`,
+    height: '60px' // 默认高度
   }
 }
 
@@ -271,10 +230,9 @@ const showEditDialog = ref(false)
 
 function handleDblClick(course) {
   editingCourse.value = {
-    day: 'Monday',
-    start: '8:30',
-    end: '9:55',
-    week: store.currentWeek,
+    col_index: 1,
+    row_index: 1,
+    week_type: 'douyou',
     ...(course ? JSON.parse(JSON.stringify(course)) : {}),
     id: course?.id || crypto.randomUUID()
   }
@@ -288,10 +246,9 @@ function showCreateDialog() {
     course: '新课程',
     teacher: '教师',
     room: '教室',
-    day: 'Monday',
-    start: '8:30',
-    end: '9:55',
-    week: store.currentWeek
+    col_index: 1,
+    row_index: 1,
+    week_type: 'douyou'
   }
   showEditDialog.value = true
 }
@@ -300,9 +257,7 @@ function saveCourse() {
   if (editingCourse.value) {
     const courseToSave = {
       ...editingCourse.value,
-      week: store.currentWeek,
-      id: editingCourse.value.id,
-      day: editingCourse.value.day || 'Monday'
+      classId: store.currentClass?.id || 0
     }
 
     // 如果是新课程，添加到待拖动区
@@ -324,32 +279,6 @@ const handleDelete = () => {
     showEditDialog.value = false
   }
 }
-
-// 初始化待拖动区
-// onMounted(() => {
-//   draftCourses.value = [
-//     {
-//       id: 'sample1',
-//       course: '数学',
-//       teacher: '张老师',
-//       room: '101',
-//       day: 'Monday',
-//       start: '8:30',
-//       end: '9:55',
-//       week: store.currentWeek
-//     },
-//     {
-//       id: 'sample2',
-//       course: '英语',
-//       teacher: '李老师',
-//       room: '202',
-//       day: 'Tuesday',
-//       start: '10:15',
-//       end: '11:40',
-//       week: store.currentWeek
-//     }
-//   ]
-// })
 </script>
 
 <style scoped>
@@ -556,7 +485,6 @@ const handleDelete = () => {
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }

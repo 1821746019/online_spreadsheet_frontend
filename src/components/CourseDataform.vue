@@ -2,9 +2,16 @@
   <el-table :data="tableData" class="form" :key="tableKey">
     <el-table-column fixed prop="id" label="ID" width="120" />
     <el-table-column prop="week_type" label="周次" width="80" />
-    <el-table-column prop="day" label="星期" width="100" />
-    <el-table-column prop="start" label="开始时间" width="120"/>
-    <el-table-column prop="end" label="结束时间" width="120"/>
+    <el-table-column prop="col_index" label="星期" width="100">
+      <template #default="scope">
+        {{ getDayFromColIndex(scope.row.col_index) }}
+      </template>
+    </el-table-column>
+    <el-table-column prop="row_index" label="时间段" width="180">
+      <template #default="scope">
+        {{ getTimeFromRowIndex(scope.row.row_index) }}
+      </template>
+    </el-table-column>
     <el-table-column prop="course" label="课程名称" width="180"/>
     <el-table-column prop="teacher" label="教师" width="150"/>
     <el-table-column prop="room" label="教室" width="150"/>
@@ -56,36 +63,35 @@
         <div class="form-group">
           <label class="input-label">星期</label>
           <el-select
-            v-model="editingCourse.day"
+            v-model="editingCourse.col_index"
             class="modern-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             v-if="editingCourse"
           >
-            <el-option label="星期一" value="Monday" />
-            <el-option label="星期二" value="Tuesday" />
-            <el-option label="星期三" value="Wednesday" />
-            <el-option label="星期四" value="Thursday" />
-            <el-option label="星期五" value="Friday" />
-            <el-option label="星期六" value="Saturday" />
-            <el-option label="星期日" value="Sunday" />
+            <el-option label="星期一" :value="1" />
+            <el-option label="星期二" :value="2" />
+            <el-option label="星期三" :value="3" />
+            <el-option label="星期四" :value="4" />
+            <el-option label="星期五" :value="5" />
+            <el-option label="星期六" :value="6" />
+            <el-option label="星期日" :value="7" />
           </el-select>
         </div>
         <div class="form-group">
-          <label class="input-label">起始时间</label>
-          <el-input
-            v-model="editingCourse.start"
-            type="text"
-            class="modern-input rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          <label class="input-label">时间段</label>
+          <el-select
+            v-model="editingCourse.row_index"
+            class="modern-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             v-if="editingCourse"
-          />
-        </div>
-        <div class="form-group">
-          <label class="input-label">结束时间</label>
-          <el-input
-            v-model="editingCourse.end"
-            type="text"
-            class="modern-input rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            v-if="editingCourse"
-          />
+          >
+            <el-option label="08:30-09:55 (第1-2节)" :value="1" />
+            <el-option label="10:15-11:40 (第3-4节)" :value="2" />
+            <el-option label="11:45-12:25 (第5节)" :value="3" />
+            <el-option label="14:00-15:25 (第6-7节)" :value="4" />
+            <el-option label="15:45-17:10 (第8-9节)" :value="5" />
+            <el-option label="17:15-17:55 (第10节)" :value="6" />
+            <el-option label="19:00-20:20 (第11-12节)" :value="7" />
+            <el-option label="20:30-21:50 (第13-14节)" :value="8" />
+          </el-select>
         </div>
         <div class="form-group">
           <label class="input-label">周次类型</label>
@@ -119,27 +125,37 @@ import { ElInput } from 'element-plus'
 
 interface Course {
   id: string
-   week_type: 'single' | 'double' | 'douyou'
-  day: string
-  start: string
-  end: string
+  row_index: number
+  col_index: number
+  week_type: 'single' | 'double' | 'douyou'
   course: string
   teacher: string
   room: string
   lastUpdatedBy: string | undefined
   classId: number
-  // semester: string
 }
 
 const store = useScheduleStore()
 const auth = useAuthStore()
 const tableKey = ref(0)
 
+function getDayFromColIndex(colIndex: number): string {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  return days[colIndex - 1] || 'Monday';
+}
+
+function getTimeFromRowIndex(rowIndex: number): string {
+  const times = [
+    '08:30-09:55', '10:15-11:40', '11:45-12:25',
+    '14:00-15:25', '15:45-17:10', '17:15-17:55',
+    '19:00-20:20', '20:30-21:50'
+  ];
+  return times[rowIndex - 1] || '08:30-09:55';
+}
+
 const tableData = computed(() => {
   return store.timetable.filter(course =>
     course.classId === store.currentClass?.id
-  //   &&
-  //  course.semester === store.currentSemester
   )
 })
 
@@ -167,7 +183,6 @@ function saveCourse() {
     const updatedCourse = {
       ...editingCourse.value,
       classId: store.currentClass?.id || 0,
-      // semester: store.currentSemester || '2024-2025-第一学期',
       lastUpdatedBy: auth.user?.username || '未知用户'
     }
 
@@ -180,11 +195,11 @@ function saveCourse() {
 </script>
 
 <style scoped>
+/* 保留原有样式不变 */
 .form {
   max-width: 1800px;
 }
 
-/* 编辑模态框样式 */
 .edit-modal {
   position: fixed;
   top: 0;

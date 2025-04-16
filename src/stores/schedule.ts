@@ -15,18 +15,17 @@ export interface Class {
 
 export interface Course {
   id: string
-  day: string
-  start: string
-  end: string
+  row_index: number
+  col_index: number
   course: string
   teacher: string
   room: string
-  lastUpdatedBy: any
+  lastUpdatedBy?: any
   hasConflict?: boolean
   week_type: 'single' | 'double' | 'douyou'
   classId: number
-  // semester: string
 }
+
 export interface Sheet {
   class_id?: number;
   col?: number;
@@ -39,6 +38,22 @@ export interface Sheet {
   week?: number;
   [property: string]: any;
 }
+
+function getDayFromColIndex(colIndex: number): string {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  return days[colIndex - 1] || 'Monday';
+}
+
+function getTimeFromRowIndex(rowIndex: number): {start: string, end: string} {
+  const times = [
+    '08:30-09:55', '10:15-11:40', '11:45-12:25',
+    '14:00-15:25', '15:45-17:10', '17:15-17:55',
+    '19:00-20:20', '20:30-21:50'
+  ];
+  const [start, end] = times[rowIndex - 1]?.split('-') || ['08:30', '09:55'];
+  return {start, end};
+}
+
 export const useScheduleStore = defineStore(
   'schedule',
   () => {
@@ -46,10 +61,9 @@ export const useScheduleStore = defineStore(
     const currentWeek = ref(1)
     const currentClass = ref<Class | null>(null)
     const currentSheet= ref<Sheet | null>(null)
-    // const currentSemester = ref('2024-2025-第一学期')
     const collaborators = ref([])
     const auth = useAuthStore()
-    // 获取课表数据
+
     async function fetchTimetable(week: number) {
       currentWeek.value = week
       if (!currentClass.value) return
@@ -59,66 +73,58 @@ export const useScheduleStore = defineStore(
         const cellData = (await cellresponse).data.cells
         console.log('获取课表:', (cellData))
         const dragItemResponse = (cellData.map(Item => Item.item_id)).map((itemId: number) => fetchDragItem(itemId))
-        // console.log('获取拖动元素响应:', Promise.all(dragItemResponse))
         const dragItemData = (await Promise.all(dragItemResponse)).map((response: any) => response.data)
+        timetable.value = cellData.map((cell, index) =>
+          convertToCourse(cell, dragItemData[index])
+        );
         console.log('获取拖动元素:', dragItemData)
-
-        // timetable.value = response.data.map((course: any) => ({
-        //   ...course,
-        //   classId: currentClass.value?.id || 0,
-        //   // semester: currentSemester.value
-        // }))
       } catch (error) {
         console.error('获取课表失败:', error)
       }
     }
-
-    // 获取班级列表
-
-
-    // 设置当前班级
+    const convertToCourse = (cell: any, item: any): Course => {
+      return {
+        id: item.id.toString(),
+        row_index: cell.row_index,
+        col_index: cell.col_index,
+        course: item.content,
+        teacher: item.teacher,
+        room: item.classroom,
+        week_type: item.week_type || 'single', // 默认 single
+        classId: currentClass.value?.id||0 // 这里使用 item.id 作为 classId，如果不正确请调整
+        // lastUpdatedBy 和 hasConflict 是可选的，可以不赋值
+      };
+    };
     async function setCurrentClass(classInfo: Class) {
       currentClass.value = classInfo
-      //await fetchTimetable(currentWeek.value)
     }
-    //设置当前工作表
+
     async function setCurrentSheet(sheetInfo: Sheet) {
       currentSheet.value = sheetInfo
       console.log('当前工作表:', currentSheet.value)
-
     }
-    // 设置当前学期
-    // async function setCurrentSemester(semester: string) {
-    //   currentSemester.value = semester
-    //   await fetchTimetable(currentWeek.value)
-    // }
 
-    // 计算属性：按天分组
     const groupedTimetable = computed(() => {
       const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       return days.map((day) => ({
         day,
         courses: timetable.value.filter((c) =>
-          c.day === day &&
+          getDayFromColIndex(c.col_index) === day &&
           (c.week_type === 'douyou' ||
            (c.week_type === 'single' && currentWeek.value % 2 === 1) ||
            (c.week_type === 'double' && currentWeek.value % 2 === 0)) &&
           c.classId === currentClass.value?.id
-          // &&
-          // c.semester === currentSemester.value
         ),
       }))
     })
 
     function getCoursesByDay(day: string) {
       return timetable.value.filter((c) =>
-        c.day === day &&
+        getDayFromColIndex(c.col_index) === day &&
         (c.week_type === 'douyou' ||
          (c.week_type === 'single' && currentWeek.value % 2 === 1) ||
          (c.week_type === 'double' && currentWeek.value % 2 === 0)) &&
         c.classId === currentClass.value?.id
-        // &&
-        // c.semester === currentSemester.value
       )
     }
 
@@ -130,7 +136,6 @@ export const useScheduleStore = defineStore(
           const finalCourse = {
             ...updatedCourse,
             classId: currentClass.value?.id || 0,
-            // semester: currentSemester.value,
             lastUpdatedBy: auth.$state.user?.username || '未知用户',
             week_type: updatedCourse.week_type || 'douyou'
           }
@@ -160,13 +165,18 @@ export const useScheduleStore = defineStore(
     }
 
     function checkConflicts(course: Course) {
+      const {start, end} = getTimeFromRowIndex(course.row_index);
+      const day = getDayFromColIndex(course.col_index);
+
       timetable.value.forEach((c) => {
+        const cTime = getTimeFromRowIndex(c.row_index);
+        const cDay = getDayFromColIndex(c.col_index);
+
         c.hasConflict =
-          c.day === course.day &&
-          c.start === course.start &&
+          cDay === day &&
+          cTime.start === start &&
           c.week_type === course.week_type &&
           c.classId === course.classId &&
-          // c.semester === course.semester &&
           c.id !== course.id &&
           (c.teacher === course.teacher || c.room === course.room)
       })
@@ -236,13 +246,11 @@ export const useScheduleStore = defineStore(
       currentWeek,
       currentClass,
       currentSheet,
-      // currentSemester,
       collaborators,
       groupedTimetable,
       fetchTimetable,
       setCurrentClass,
       setCurrentSheet,
-      // setCurrentSemester,
       getCoursesByDay,
       updateCourse,
       removeCourse,

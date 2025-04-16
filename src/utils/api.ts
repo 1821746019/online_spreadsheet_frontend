@@ -152,7 +152,6 @@ export const moveDragItem = (drag_item_id: number,class_id: number, sheet_id: nu
 //获取单元格数据
 export interface Cell {
   col_index?: number;
-  content?: string;
   create_time?: Date;
   id?: number;
   item_id?: number | null;
