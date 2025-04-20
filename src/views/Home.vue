@@ -69,9 +69,9 @@ const schedule = useScheduleStore()
 const collaborators = schedule.collaborators
 const router = useRouter();
 
-const handleLogout = () => {
+const handleLogout = async () => {
   const loginPath = auth.logout();
-  router.push(loginPath);
+   router.push(await loginPath);
 };
 
 // 获取对比色函数

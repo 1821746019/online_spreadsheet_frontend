@@ -50,7 +50,12 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    logout() {
+    async logout() {
+      await api.post('/logout') // 发送登出请求到后端
+      // if (response.status !== 200) {
+      //   throw new Error('Logout failed')
+      // }
+      // 清除token和user
       this.token = null
       this.user = null
       this.isAuthenticated = false
