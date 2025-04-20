@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <!-- 顶部导航栏 -->
-    <nav class="app-header">
+    <nav class="app-header":style="{ marginLeft: sidebarMargin }">
       <div class="header-content">
         <div class="logo-container">
           <h1 class="logo">多人在线表格编辑系统</h1>
@@ -28,14 +28,14 @@
       <div class="header-gradient"></div>
     </nav>
 
-    <GlobalSidebar />
+    <GlobalSidebar ref="sidebar"/>
 
     <!-- 主内容区 -->
-    <main class="app-main">
+    <main class="app-main" :style="{ marginLeft: sidebarMargin }">
       <router-view></router-view>
     </main>
 
-    <!-- 全局提示 -->
+    <!-- 全局提示
     <div v-if="collaborators.length > 0" class="collaborators-hint">
       <div class="hint-content">
         <div class="online-dots">
@@ -45,7 +45,7 @@
         </div>
         <span>当前有 {{ collaborators.length }} 位协作者在线</span>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -55,7 +55,15 @@ import { useAuthStore } from '../stores/auth'
 import { useScheduleStore } from '../stores/schedule'
 import { useRouter } from 'vue-router';
 import { onMounted } from 'vue';
+import { ref, computed } from 'vue';
+// ...其他导入
 
+const sidebar = ref<InstanceType<typeof GlobalSidebar> | null>(null);
+
+// 计算侧边栏的margin
+const sidebarMargin = computed(() => {
+  return sidebar.value?.isCollapsed ? '70px' : '220px';
+});
 const auth = useAuthStore()
 const schedule = useScheduleStore()
 const collaborators = schedule.collaborators
@@ -88,7 +96,6 @@ const getContrastColor = (hexColor: string) => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 900;
-  margin-left: 200px;
   transition: margin-left 0.3s ease;
 }
 
@@ -194,8 +201,7 @@ const getContrastColor = (hexColor: string) => {
   padding: 2rem;
   max-width: 1800px;
   margin: 0 auto;
-  transition: width 0.3s ease, margin-left 0.3s ease;
-  margin-left: 200px;
+  transition: margin-left 0.3s ease;
 }
 
 .collaborators-hint {
@@ -274,12 +280,12 @@ const getContrastColor = (hexColor: string) => {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .app-header {
-    margin-left: 70px;
+    margin-left: 70px !important;
   }
 
   .app-main {
+    margin-left: 70px !important;
     width: calc(100% - 70px);
-    margin-left: 70px;
     padding: 1rem;
   }
 

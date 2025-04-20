@@ -1,8 +1,11 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ 'collapsed': isCollapsed }">
     <div class="logo-container">
       <div class="logo">SZTU</div>
       <div class="logo-subtitle">在线表格编辑</div>
+      <button class="collapse-btn" @click="toggleSidebar">
+        {{ isCollapsed ? '→' : '←' }}
+      </button>
     </div>
     <nav class="sidebar-nav">
       <router-link
@@ -21,14 +24,26 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+
+const isCollapsed = ref(false);
+
+const toggleSidebar = () => {
+  isCollapsed.value = !isCollapsed.value;
+};
+// 暴露状态和方法
+defineExpose({
+  isCollapsed,
+  toggleSidebar
+});
+
 // 菜单配置项
 const menuItems = [
-{ icon: "🏠", title: "首页", path: "/home" },
+  { icon: "🏠", title: "首页", path: "/home" },
   { icon: "🏠", title: "课表编辑", path: "/home/editor" },
   { icon: "📊", title: "一般表格", path: "/home/form" },
   { icon: "📂", title: "读取CSV表格", path: "/home/read" },
   { icon: "📊", title: "课程表格数据", path: "/home/course" },
-
 ];
 </script>
 
@@ -50,7 +65,32 @@ const menuItems = [
   border-right: 1px solid #cbd5e0;
 }
 
+.sidebar.collapsed {
+  width: 70px;
+}
+
+.sidebar.collapsed .logo-container {
+  padding: 0 10px 20px;
+}
+
+.sidebar.collapsed .logo,
+.sidebar.collapsed .logo-subtitle,
+.sidebar.collapsed .menu-title {
+  display: none;
+}
+
+.sidebar.collapsed .menu-item {
+  justify-content: center;
+  padding: 15px 0;
+}
+
+.sidebar.collapsed .menu-icon {
+  margin-right: 0;
+  font-size: 20px;
+}
+
 .logo-container {
+  position: relative;
   padding: 0 20px 20px;
   margin-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -70,6 +110,29 @@ const menuItems = [
   font-size: 12px;
   color: #718096;
   letter-spacing: 1px;
+}
+
+.collapse-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%) scale(1.1);
 }
 
 .sidebar-nav {
@@ -153,6 +216,10 @@ const menuItems = [
   .menu-icon {
     margin-right: 0;
     font-size: 20px;
+  }
+
+  .collapse-btn {
+    display: none;
   }
 }
 </style>
