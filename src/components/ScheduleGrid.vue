@@ -110,7 +110,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
-
+import { createDragItem } from '../utils/api'
 const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
 
@@ -122,7 +122,7 @@ async function handleWeekChange(week) {
   try {
     store.currentWeek = week
     await store.fetchTimetable(week)
-   
+
   } catch (error) {
     console.error('Failed to change week:', error)
   }
@@ -233,8 +233,8 @@ function handleDblClick(course) {
     col_index: 1,
     row_index: 1,
     week_type: 'douyou',
-    ...(course ? JSON.parse(JSON.stringify(course)) : {}),
-    id: course?.id || crypto.randomUUID()
+    ...(course || {}),
+    id: course?.id || Math.random(100).toString()//因为id类型问题现在获取的课表无法拖动，创建元素，更新元素等api没有导入
   }
   showEditDialog.value = true
 }
@@ -242,18 +242,16 @@ function handleDblClick(course) {
 // 显示创建对话框
 function showCreateDialog() {
   editingCourse.value = {
-    id: crypto.randomUUID(),
+    id: Math.random(100).toString(),
     course: '新课程',
     teacher: '教师',
     room: '教室',
-    col_index: 1,
-    row_index: 1,
     week_type: 'douyou'
   }
   showEditDialog.value = true
 }
 
-function saveCourse() {
+async function saveCourse() {
   if (editingCourse.value) {
     const courseToSave = {
       ...editingCourse.value,
@@ -263,7 +261,15 @@ function saveCourse() {
     // 如果是新课程，添加到待拖动区
     if (!store.timetable.some(c => c.id === courseToSave.id) &&
         !draftCourses.value.some(c => c.id === courseToSave.id)) {
-      draftCourses.value.push({...courseToSave})
+        await createDragItem({
+          content: courseToSave.course,
+          teacher: courseToSave.teacher,
+          room: courseToSave.room,
+          week_type: courseToSave.week_type,
+          selected_class_ids: [store.currentClass?.id || 0],
+        })
+        draftCourses.value.push({...courseToSave})
+
     } else {
       store.updateCourse(courseToSave)
     }

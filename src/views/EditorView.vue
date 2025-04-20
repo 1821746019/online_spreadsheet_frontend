@@ -1,7 +1,7 @@
 <template>
   <div class="editor-view">
     <div class="header-selectors">
-    <h2>{{ selectedClass.name }}{{  }}</h2>
+    <h2>{{ selectedClass.name }}的{{ store.currentSheet.name }}</h2>
     </div>
 
     <CourseDataform></CourseDataform>
@@ -34,7 +34,9 @@ const router = useRoute()
 const classInfo = {
   id: store.currentClass?.id || 0
 }
-
+onMounted(()=>{
+  store.fetchTimetable(store.currentWeek)
+})
 
 // 预定义的学期列表
 // const semesters = ref([

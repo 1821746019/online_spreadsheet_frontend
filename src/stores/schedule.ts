@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { emitOperation, type Operation } from '../utils/socket'
-import axios, { fetchCellData,fetchDragItem } from '../utils/api'
+import axios, { fetchCellData,fetchDragItem,deleteDragItem,updateDragItem, moveDragItem } from '../utils/api'
 import { useAuthStore } from './auth'
 import { Item } from 'ant-design-vue/es/menu'
 
@@ -14,7 +14,7 @@ export interface Class {
 }
 
 export interface Course {
-  id: string
+  id: number
   row_index: number
   col_index: number
   course: string
@@ -71,6 +71,7 @@ export const useScheduleStore = defineStore(
       try {
         const cellresponse = fetchCellData(currentClass.value.id, currentSheet.value?.id || 0)
         const cellData = (await cellresponse).data.cells
+        // timetable.value = []
         console.log('获取课表:', (cellData))
         const dragItemResponse = (cellData.map(Item => Item.item_id)).map((itemId: number) => fetchDragItem(itemId))
         const dragItemData = (await Promise.all(dragItemResponse)).map((response: any) => response.data)
@@ -91,8 +92,9 @@ export const useScheduleStore = defineStore(
         teacher: item.teacher,
         room: item.classroom,
         week_type: item.week_type || 'single', // 默认 single
-        classId: currentClass.value?.id||0 // 这里使用 item.id 作为 classId，如果不正确请调整
+        classId: currentClass.value?.id||0, // 这里使用 item.id 作为 classId，如果不正确请调整
         // lastUpdatedBy 和 hasConflict 是可选的，可以不赋值
+        hasConflict: false,
       };
     };
     async function setCurrentClass(classInfo: Class) {
@@ -127,9 +129,20 @@ export const useScheduleStore = defineStore(
         c.classId === currentClass.value?.id
       )
     }
-
+    const convertTodragItem = (course: Course): any => {
+      return {
+        id: course.id,
+        classroom: course.room,
+        content: course.course,
+        teacher: course.teacher,
+        selected_class_ids: [course.classId],
+        week_type: course.week_type,
+        row_index: course.row_index,
+        col_index: course.col_index,
+      }
+    }
     async function updateCourse(updatedCourse: Course) {
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<void>(async (resolve, reject) => {
         try {
           const auth = useAuthStore()
           const index = timetable.value.findIndex((c) => c.id === updatedCourse.id)
@@ -142,12 +155,27 @@ export const useScheduleStore = defineStore(
 
           if (index > -1) {
             timetable.value.splice(index, 1)
-            timetable.value.push(finalCourse)
-          } else {
-            timetable.value.push(finalCourse)
           }
+          // 发送请求到后端
+          await updateDragItem(finalCourse.id, {
+            classroom: finalCourse.room,
+            content: finalCourse.course,
+            teacher: finalCourse.teacher,
+            selected_class_ids: [finalCourse.classId],
+            week_type: finalCourse.week_type
+          })
+          await moveDragItem(
+            finalCourse.id,
+            currentClass.value?.id || 0,
+            currentSheet.value?.id || 0,
+            {
+              col_index: finalCourse.col_index,
+              row_index: finalCourse.row_index
+            }
+          )
+          timetable.value.push(finalCourse)
 
-          timetable.value.sort((a, b) => a.id.localeCompare(b.id))
+          timetable.value.sort((a, b) => a.id - b.id)
 
           checkConflicts(finalCourse)
           emitOperation({
@@ -165,21 +193,40 @@ export const useScheduleStore = defineStore(
     }
 
     function checkConflicts(course: Course) {
-      const {start, end} = getTimeFromRowIndex(course.row_index);
+      // 1. 获取当前课程的时间段和星期
+      const { start, end } = getTimeFromRowIndex(course.row_index);
       const day = getDayFromColIndex(course.col_index);
 
+      // 2. 遍历课表检查冲突
       timetable.value.forEach((c) => {
+        // 跳过自身比较
+        if (c.id === course.id) return;
+
+        // 3. 获取对比课程的时间段和星期
         const cTime = getTimeFromRowIndex(c.row_index);
         const cDay = getDayFromColIndex(c.col_index);
 
-        c.hasConflict =
-          cDay === day &&
-          cTime.start === start &&
-          c.week_type === course.week_type &&
-          c.classId === course.classId &&
-          c.id !== course.id &&
-          (c.teacher === course.teacher || c.room === course.room)
-      })
+        // 4. 冲突条件判断（优化后的逻辑）
+        const isSameDayAndTime = cDay === day && cTime.start === start&&cTime.end === end;
+        // 判断是否为同一周类型
+        const isSameWeekType = c.week_type === course.week_type ||
+                             course.week_type === 'douyou' ||
+                             c.week_type === 'douyou';
+        const isSameClass = c.classId === course.classId;
+        const isTeacherOrRoomConflict = c.teacher === course.teacher ||
+                                       c.room === course.room;
+
+        // 5. 设置冲突状态（避免重复计算）
+        c.hasConflict = (isSameDayAndTime &&isSameWeekType &&isSameClass )//同一班级同一时间段
+        // ||(isTeacherOrRoomConflict&&isSameDayAndTime&&isSameWeekType);//同一时间段的同一老师或教室
+        // console.log('课程冲突:', c.course, '与', course.course, '冲突状态:', c.hasConflict);
+        // console.log('时间冲突',isSameDayAndTime,'同一周类型',isSameWeekType,'同一班级',isSameClass,'教师或教室冲突',isTeacherOrRoomConflict)
+      });
+
+      // 6. 设置当前课程的冲突状态（新增）
+      course.hasConflict = timetable.value.some(c =>
+        c.hasConflict && c.id !== course.id
+      );
     }
 
     const operationQueue = ref<Operation[]>([])
@@ -222,11 +269,13 @@ export const useScheduleStore = defineStore(
       }
     }
 
-    function removeCourse(courseId: string) {
+    async function removeCourse(courseId: number) {
       const auth = useAuthStore()
       const index = timetable.value.findIndex((c) => c.id === courseId)
       if (index > -1) {
         const removed = timetable.value.splice(index, 1)
+        await(deleteDragItem(removed[0].id))
+        console.log('删除拖动元素:', removed[0])
         emitOperation({
           type: 'delete',
           data: {

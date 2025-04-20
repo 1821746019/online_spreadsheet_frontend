@@ -61,7 +61,7 @@
         @click="selectClass(classItem)"
       >
         <div class="class-name">{{ classItem.name }}</div>
-        <button class="delete-btn" @click.stop="deleteClass(classItem.id)">
+        <button class="delete-btn" @click.stop="deleteClassHandler(classItem.id)">
           <span class="delete-icon">×</span>
         </button>
         <div class="class-meta">
@@ -78,9 +78,8 @@
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import { defineComponent, onMounted, ref, reactive } from 'vue';
+<script setup lang="ts">
+import { onMounted, ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useScheduleStore } from '../stores/schedule';
 import { createClass, fetchClasses, deleteClass } from '../utils/api'
@@ -94,87 +93,74 @@ interface ClassItem {
   update_time: string;
 }
 
-export default defineComponent({
-  name: 'ClassSelectPage',
-  setup() {
-    const scheduleStore = useScheduleStore();
-    const router = useRouter();
-    const classList = ref<ClassItem[]>([]);
-    const showCreateDialog = ref(false);
-    const formData = reactive({
-      name: '',
-      create_sheet: false,
-      weeks: 1
-    });
-
-    const fetchClassList = async () => {
-      const classRes = await fetchClasses()
-      classList.value = classRes.data?.list || []
-      console.log('班级列表:', classList.value);
-    };
-
-    const createclass = async () => {
-      try {
-        await createClass({
-          name: formData.name,
-          create_sheet: formData.create_sheet,
-          weeks: formData.create_sheet ? formData.weeks : undefined
-        });
-        showCreateDialog.value = false;
-        formData.name = '';
-        formData.create_sheet = false;
-        formData.weeks = 1;
-        await fetchClassList();
-      } catch (error) {
-        console.error('创建班级失败:', error);
-      }
-    };
-
-    const deleteClassHandler = async (classId: number) => {
-      if (confirm('确定要删除这个班级吗？')) {
-        try {
-          await deleteClass(classId);
-          await fetchClassList();
-        } catch (error) {
-          console.error('删除班级失败:', error);
-        }
-      }
-    };
-
-    const formatDate = (dateString: string): string => {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    };
-
-    const selectClass = (classItem: ClassItem) => {
-      scheduleStore.setCurrentClass(classItem);
-      router.push({
-        name: 'SheetSelect',
-        params: { class_id: classItem.id}
-      });
-    };
-
-    onMounted(() => {
-      fetchClassList();
-    });
-
-    return {
-      classList,
-      showCreateDialog,
-      formData,
-      createclass,
-      deleteClass: deleteClassHandler,
-      formatDate,
-      selectClass
-    };
-  },
+const scheduleStore = useScheduleStore();
+const router = useRouter();
+const classList = ref<ClassItem[]>([]);
+const showCreateDialog = ref(false);
+const formData = reactive({
+  name: '',
+  create_sheet: false,
+  weeks: 1
 });
+
+const fetchClassList = async () => {
+  const classRes = await fetchClasses()
+  classList.value = classRes.data?.list || []
+  console.log('班级列表:', classList.value);
+};
+
+const createclass = async () => {
+  try {
+    await createClass({
+      name: formData.name,
+      create_sheet: formData.create_sheet,
+      weeks: formData.create_sheet ? formData.weeks : undefined
+    });
+    showCreateDialog.value = false;
+    formData.name = '';
+    formData.create_sheet = false;
+    formData.weeks = 1;
+    await fetchClassList();
+  } catch (error) {
+    console.error('创建班级失败:', error);
+  }
+};
+
+const deleteClassHandler = async (classId: number) => {
+  if (confirm('确定要删除这个班级吗？')) {
+    try {
+      await deleteClass(classId);
+      await fetchClassList();
+    } catch (error) {
+      console.error('删除班级失败:', error);
+    }
+  }
+};
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const selectClass = (classItem: ClassItem) => {
+  scheduleStore.setCurrentClass(classItem);
+  router.push({
+    name: 'SheetSelect',
+    params: { class_id: classItem.id}
+  });
+};
+
+onMounted(() => {
+  fetchClassList();
+});
+
+
 </script>
 
 <style scoped>

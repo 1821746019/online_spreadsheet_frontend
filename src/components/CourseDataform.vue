@@ -15,7 +15,7 @@
     <el-table-column prop="course" label="课程名称" width="180"/>
     <el-table-column prop="teacher" label="教师" width="150"/>
     <el-table-column prop="room" label="教室" width="150"/>
-    <el-table-column prop="lastUpdatedBy" label="最后更新人" width="150"/>
+    <!-- <el-table-column prop="lastUpdatedBy" label="最后更新人" width="150"/> -->
     <el-table-column fixed="right" label="Operations" min-width="120">
       <template #default="scope">
         <el-button link type="primary" size="small" @click="handleEdit(scope.row)">
@@ -105,7 +105,7 @@
           <button @click="showEditDialog = false" class="cancel-btn">
             <span>取消</span>
           </button>
-          <button @click="handleDelete(editingCourse?.id)" class="delete-btn" v-if="editingCourse">
+          <button @click="handleDelete(editingCourse?.id || 0)" class="delete-btn" v-if="editingCourse">
             <span>删除课程</span>
           </button>
           <button @click="saveCourse" class="save-btn">
@@ -124,7 +124,7 @@ import { useAuthStore } from '../stores/auth'
 import { ElInput } from 'element-plus'
 
 interface Course {
-  id: string
+  id: number
   row_index: number
   col_index: number
   week_type: 'single' | 'double' | 'douyou'
@@ -172,7 +172,7 @@ const handleEdit = (row: Course) => {
   showEditDialog.value = true
 }
 
-const handleDelete = (id: string) => {
+const handleDelete = (id: number) => {
   store.removeCourse(id)
   console.log('Deleted course:', id)
 }
