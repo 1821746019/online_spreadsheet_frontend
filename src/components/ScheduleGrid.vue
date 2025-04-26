@@ -18,7 +18,7 @@
 
     <div class="week-selector">
       <el-select v-model="store.currentWeek" placeholder="第 1 周" @change="handleWeekChange">
-        <el-option v-for="week in 20" :key="week" :label="`第 ${week} 周`" :value="week" />
+        <el-option v-for="week in store.totalweek" :key="week" :label="`第 ${week} 周`" :value="week" />
       </el-select>
     </div>
     <div class="schedule-grid">
@@ -186,43 +186,43 @@ async function handleDrop(e, day) {
     console.warn('超出时间范围')
     return
   }
-
-  // 先从待拖动区查找课程，再从正式课程中查找
-  let originalCourse = draftCourses.value.find(c => c.id === courseId)
-  if (!originalCourse) {
-    originalCourse = store.timetable.find(c => c.id === courseId)
-  }
+  // 使用 Map 快速查找课程
+  let originalCourse = draftCourses.value.find(c => c.id === courseId) ||
+                      store.timetable.find(c => c.id === courseId)
   if (!originalCourse) return
-  const ori_col=originalCourse.col_index
-  const ori_row=originalCourse.row_index
   const dayIndex = days.indexOf(day) + 1
+  if(originalCourse.row_index===dayIndex&&originalCourse.col_index===slotIndex){
+    return
+  }
   const updatedCourse = {
     ...originalCourse,
     col_index: dayIndex,
     row_index: slotIndex
   }
 
-  // 如果是来自待拖动区的课程，添加到正式课程中
-  if (draftCourses.value.some(c => c.id === courseId)) {
-    store.updateCourse(updatedCourse)
-    draftCourses.value = draftCourses.value.filter(c => c.id !== courseId)
-  } else {
-    console.log('ori_col',ori_col)
-    console.log('ori_row',ori_row)
-    try{
-      //删除后端原单元格数据
-    const response=await updateCellData(store.currentClass.id||0,store.currentSheet.id||0,{
-            Row:ori_row,
-            Col:ori_col
-          })//删除后端原单元格数据
-    console.log('删除关联元素',response)
-        }catch(e){
-            throw(e)
+  // 批量处理更新
+  try {
+    if (draftCourses.value.some(c => c.id === courseId)) {
+      // 从待拖动区移动到正式课程
+      await store.updateCourse(updatedCourse)
+      draftCourses.value = draftCourses.value.filter(c => c.id !== courseId)
+    } else {
+      // 正式课程内部移动
+      await Promise.all([
+        updateCellData(
+          store.currentClass.id || 0,
+          store.currentSheet.id || 0,
+          {
+            Row: originalCourse.row_index,
+            Col: originalCourse.col_index
           }
-    //更新后端相关数据
-    store.updateCourse(updatedCourse)
+        ),
+        store.updateCourse(updatedCourse)
+      ])
+    }
+  } catch (error) {
+    console.error('拖放操作失败:', error)
   }
-  // emit('courseMoved', updatedCourse)
 }
 
 function getCourseStyle(course) {
@@ -311,8 +311,15 @@ onMounted(async()=>{
   room: item.classroom,         // 直接使用classroom字段
   // 可以继续添加其他需要的字段...
 }))
-  console.log(dragcourses)
-  draftCourses.value.push(...dragcourses)
+const differentCourses = dragcourses.filter(dragCourse =>
+  !store.timetable.some(timetableCourse =>
+    timetableCourse.id === dragCourse.id
+  )
+);
+  console.log('diff',differentCourses )
+  if(differentCourses){
+  draftCourses.value.push(...differentCourses)
+  }
 })
 </script>
 

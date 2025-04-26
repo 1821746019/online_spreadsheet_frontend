@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { PREFIX_URL } from './config';
-
 const instance = axios.create({
   baseURL: PREFIX_URL,
   timeout: 10000,

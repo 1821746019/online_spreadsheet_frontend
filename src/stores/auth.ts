@@ -52,7 +52,15 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
-      await api.post('/logout') // 发送登出请求到后端
+      console.log('token',this.token)
+      await api.post('/logout'
+      //   ,null,{
+      //   headers: {
+      //     'Authorization': `Bearer ${this.token}`, // 确保格式正确
+      //     // 'Content-Type': 'application/json', // 明确指定 Content-Type
+      //   },
+      // }
+) // 发送登出请求到后端
       // if (response.status !== 200) {
       //   throw new Error('Logout failed')
       // }

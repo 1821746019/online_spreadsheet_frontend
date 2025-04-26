@@ -149,6 +149,7 @@ onMounted(() => {
   console.log('class_name:', class_name)
   console.log('class_id:', class_id)
   fetchSheets()
+  console.log(sheets.value)
 })
 
 // 从后端获取工作表列表
@@ -159,6 +160,7 @@ const fetchSheets = async () => {
       page: 1,
       page_size: 10
     })
+    console.log('工作表响应',response);
     sheets.value = response.data.sheets
     console.log('工作表列表:', sheets.value)
   } catch (error) {
@@ -180,10 +182,9 @@ const createSheet = async () => {
 
     // 调用API创建工作表
     const response = await api.create_sheet(<number>class_id, newSheet.value)
-
+    scheduleStore.totalweek=newSheet.value.week
     // 添加到列表
     sheets.value.push(response.data)
-
     // 重置表单并关闭对话框
     newSheet.value = { name: '', week: 1, row: 1, col: 1 }
     showCreateDialog.value = false
