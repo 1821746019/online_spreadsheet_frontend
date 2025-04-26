@@ -1,13 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import EditorView from '../views/EditorView.vue'
-import ReadCSV from '../components/ReadCSV.vue'
-import CourseDataform from '../components/CourseDataform.vue'
-import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
 import { useAuthStore } from '../stores/auth'
-import LandingPage from '../views/LandingPage.vue'
-import Home from '../views/Home.vue'
-import CommonFormView from '../views/CommonFormView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,7 +7,7 @@ const router = createRouter({
     {
       path: '/home',
       name: 'home',
-      component: Home,
+      component: () => import('../views/Home.vue'),
       children: [
         {
           path: '',
@@ -33,24 +25,19 @@ const router = createRouter({
           component: () => import('../views/EditorView.vue'), // 课表组件
         },
         {
-          path: '/home/editor',
-          name: 'editor',
-          component: EditorView,
-        },
-        {
           path: '/home/read',
           name: 'read',
-          component: ReadCSV,
+          component: () => import('../components/ReadCSV.vue'), // 读取CSV组件
         },
         {
           path: '/home/form',
           name: 'form',
-          component: CommonFormView,
+          component: () => import('../components/CommonForm.vue'), // 表单组件
         },
         {
           path: '/home/course',
           name: 'course',
-          component: CourseDataform,
+          component: () => import('../components/CourseDataform.vue'), // 课程数据组件
         },
       ],
       meta: { requiresAuth: true },
@@ -58,19 +45,19 @@ const router = createRouter({
     {
       path: '/',
       name: 'Page',
-      component: LandingPage,
+      component: () => import('../views/LandingPage.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/login',
       name: 'login',
-      component: LoginView,
+      component: () => import('../views/LoginView.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/register',
       name: 'register',
-      component: RegisterView,
+      component: () => import('../views/RegisterView.vue'),
       meta: { requiresAuth: false },
     },
   ],

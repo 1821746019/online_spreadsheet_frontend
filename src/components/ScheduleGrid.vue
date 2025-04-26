@@ -88,7 +88,7 @@
           <el-select v-model="editingCourse.week_type" class="modern-input">
             <el-option label="单周" value="single" />
             <el-option label="双周" value="double" />
-            <el-option label="都有" value="douyou" />
+            <el-option label="都有" value="all" />
           </el-select>
         </div>
         <div class="button-group">
@@ -108,12 +108,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import {  onMounted, ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
-import { createDragItem } from '../utils/api'
+import { createDragItem,fetchDragItemlist,updateCellData } from '../utils/api'
 const store = useScheduleStore()
 const emit = defineEmits(['courseMoved'])
-
 // 新增状态
 const draftCourses = ref([])
 const coursePool = ref(null)
@@ -153,7 +152,7 @@ const dayMap = {
 function getCoursesByDay(day) {
   const dayIndex = days.indexOf(day) + 1;
   return store.timetable.filter(c => {
-    const matchesWeek = c.week_type === 'douyou' ||
+    const matchesWeek = c.week_type === 'all' ||
                       (c.week_type === 'single' && store.currentWeek % 2 === 1) ||
                       (c.week_type === 'double' && store.currentWeek % 2 === 0);
     return c.col_index === dayIndex && matchesWeek;
@@ -174,7 +173,7 @@ function handleDragEnd(e) {
   e.target.classList.remove('dragging')
 }
 
-function handleDrop(e, day) {
+async function handleDrop(e, day) {
   e.preventDefault()
   const courseId = e.dataTransfer.getData('text/plain')
   const targetColumn = e.currentTarget
@@ -194,7 +193,8 @@ function handleDrop(e, day) {
     originalCourse = store.timetable.find(c => c.id === courseId)
   }
   if (!originalCourse) return
-
+  const ori_col=originalCourse.col_index
+  const ori_row=originalCourse.row_index
   const dayIndex = days.indexOf(day) + 1
   const updatedCourse = {
     ...originalCourse,
@@ -207,9 +207,22 @@ function handleDrop(e, day) {
     store.updateCourse(updatedCourse)
     draftCourses.value = draftCourses.value.filter(c => c.id !== courseId)
   } else {
+    console.log('ori_col',ori_col)
+    console.log('ori_row',ori_row)
+    try{
+      //删除后端原单元格数据
+    const response=await updateCellData(store.currentClass.id||0,store.currentSheet.id||0,{
+            Row:ori_row,
+            Col:ori_col
+          })//删除后端原单元格数据
+    console.log('删除关联元素',response)
+        }catch(e){
+            throw(e)
+          }
+    //更新后端相关数据
     store.updateCourse(updatedCourse)
   }
-  emit('courseMoved', updatedCourse)
+  // emit('courseMoved', updatedCourse)
 }
 
 function getCourseStyle(course) {
@@ -232,7 +245,7 @@ function handleDblClick(course) {
   editingCourse.value = {
     col_index: 1,
     row_index: 1,
-    week_type: 'douyou',
+    week_type: 'all',
     ...(course || {}),
     id: course?.id || Math.random(100).toString()//因为id类型问题现在获取的课表无法拖动，创建元素，更新元素等api没有导入
   }
@@ -241,12 +254,13 @@ function handleDblClick(course) {
 
 // 显示创建对话框
 function showCreateDialog() {
+
   editingCourse.value = {
     id: Math.random(100).toString(),
     course: '新课程',
     teacher: '教师',
     room: '教室',
-    week_type: 'douyou'
+    week_type: 'all'
   }
   showEditDialog.value = true
 }
@@ -261,13 +275,14 @@ async function saveCourse() {
     // 如果是新课程，添加到待拖动区
     if (!store.timetable.some(c => c.id === courseToSave.id) &&
         !draftCourses.value.some(c => c.id === courseToSave.id)) {
-        await createDragItem({
+        const response=await createDragItem({
           content: courseToSave.course,
           teacher: courseToSave.teacher,
-          room: courseToSave.room,
+          classroom: courseToSave.room,
           week_type: courseToSave.week_type,
           selected_class_ids: [store.currentClass?.id || 0],
         })
+        courseToSave.id=response.data.id.toString()
         draftCourses.value.push({...courseToSave})
 
     } else {
@@ -285,6 +300,20 @@ const handleDelete = () => {
     showEditDialog.value = false
   }
 }
+onMounted(async()=>{
+  console.log('ks',store.currentClass.id)
+  const response=await fetchDragItemlist(store.currentClass.id)
+  console.log(response)
+  const dragcourses = response.data.map(item => ({
+  id: item.id.toString(),       // 只提取id并转为字符串
+  course: item.content,      // 假设原字段是courseName
+  teacher: item.teacher,    // 假设原字段是teacherName
+  room: item.classroom,         // 直接使用classroom字段
+  // 可以继续添加其他需要的字段...
+}))
+  console.log(dragcourses)
+  draftCourses.value.push(...dragcourses)
+})
 </script>
 
 <style scoped>

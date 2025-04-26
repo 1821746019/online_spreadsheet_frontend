@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { emitOperation, type Operation } from '../utils/socket'
-import axios, { fetchCellData,fetchDragItem,deleteDragItem,updateDragItem, moveDragItem } from '../utils/api'
+import axios, { fetchCellData,fetchDragItem,deleteDragItem,updateDragItem, moveDragItem,updateCellData } from '../utils/api'
 import { useAuthStore } from './auth'
 import { Item } from 'ant-design-vue/es/menu'
 
@@ -22,7 +22,7 @@ export interface Course {
   room: string
   lastUpdatedBy?: any
   hasConflict?: boolean
-  week_type: 'single' | 'double' | 'douyou'
+  week_type: 'single' | 'double' | 'all'
   classId: number
 }
 
@@ -70,16 +70,18 @@ export const useScheduleStore = defineStore(
 
       try {
         const cellresponse = fetchCellData(currentClass.value.id, currentSheet.value?.id || 0)
-        const cellData = (await cellresponse).data.cells
+        console.log('获取课表:', ((await cellresponse).data))
+        const cellData = (await cellresponse).data.filter(item => item.item_id !== null);
         // timetable.value = []
-        console.log('获取课表:', (cellData))
         const dragItemResponse = (cellData.map(Item => Item.item_id)).map((itemId: number) => fetchDragItem(itemId))
         const dragItemData = (await Promise.all(dragItemResponse)).map((response: any) => response.data)
+        console.log('dragItemData',dragItemData)
         timetable.value = cellData.map((cell, index) =>
           convertToCourse(cell, dragItemData[index])
         );
         console.log('获取拖动元素:', dragItemData)
       } catch (error) {
+        timetable.value=[]
         console.error('获取课表失败:', error)
       }
     }
@@ -112,7 +114,7 @@ export const useScheduleStore = defineStore(
         day,
         courses: timetable.value.filter((c) =>
           getDayFromColIndex(c.col_index) === day &&
-          (c.week_type === 'douyou' ||
+          (c.week_type === 'all' ||
            (c.week_type === 'single' && currentWeek.value % 2 === 1) ||
            (c.week_type === 'double' && currentWeek.value % 2 === 0)) &&
           c.classId === currentClass.value?.id
@@ -123,7 +125,7 @@ export const useScheduleStore = defineStore(
     function getCoursesByDay(day: string) {
       return timetable.value.filter((c) =>
         getDayFromColIndex(c.col_index) === day &&
-        (c.week_type === 'douyou' ||
+        (c.week_type === 'all' ||
          (c.week_type === 'single' && currentWeek.value % 2 === 1) ||
          (c.week_type === 'double' && currentWeek.value % 2 === 0)) &&
         c.classId === currentClass.value?.id
@@ -146,17 +148,24 @@ export const useScheduleStore = defineStore(
         try {
           const auth = useAuthStore()
           const index = timetable.value.findIndex((c) => c.id === updatedCourse.id)
+
           const finalCourse = {
             ...updatedCourse,
             classId: currentClass.value?.id || 0,
             lastUpdatedBy: auth.$state.user?.username || '未知用户',
-            week_type: updatedCourse.week_type || 'douyou'
+            week_type: updatedCourse.week_type || 'all'
           }
 
           if (index > -1) {
             timetable.value.splice(index, 1)
           }
-          // 发送请求到后端
+          timetable.value.push(finalCourse)
+
+
+          timetable.value.sort((a, b) => a.id - b.id)
+
+          if(!checkConflicts(finalCourse)){
+            // 发送请求到后端
           await updateDragItem(finalCourse.id, {
             classroom: finalCourse.room,
             content: finalCourse.course,
@@ -169,22 +178,19 @@ export const useScheduleStore = defineStore(
             currentClass.value?.id || 0,
             currentSheet.value?.id || 0,
             {
-              col_index: finalCourse.col_index,
-              row_index: finalCourse.row_index
+              target_col: finalCourse.col_index,
+              target_row: finalCourse.row_index,
             }
           )
-          timetable.value.push(finalCourse)
+          }
 
-          timetable.value.sort((a, b) => a.id - b.id)
-
-          checkConflicts(finalCourse)
-          emitOperation({
-            type: 'update',
-            data: finalCourse,
-            version: Date.now(),
-            timestamp: Date.now(),
-            userId: auth.user?.username || 'unknown'
-          })
+          // emitOperation({
+          //   type: 'update',
+          //   data: finalCourse,
+          //   version: Date.now(),
+          //   timestamp: Date.now(),
+          //   userId: auth.user?.username || 'unknown'
+          // })
           resolve()
         } catch (error) {
           reject(error)
@@ -210,8 +216,8 @@ export const useScheduleStore = defineStore(
         const isSameDayAndTime = cDay === day && cTime.start === start&&cTime.end === end;
         // 判断是否为同一周类型
         const isSameWeekType = c.week_type === course.week_type ||
-                             course.week_type === 'douyou' ||
-                             c.week_type === 'douyou';
+                             course.week_type === 'all' ||
+                             c.week_type === 'all';
         const isSameClass = c.classId === course.classId;
         const isTeacherOrRoomConflict = c.teacher === course.teacher ||
                                        c.room === course.room;
@@ -227,6 +233,7 @@ export const useScheduleStore = defineStore(
       course.hasConflict = timetable.value.some(c =>
         c.hasConflict && c.id !== course.id
       );
+      return course.hasConflict
     }
 
     const operationQueue = ref<Operation[]>([])
@@ -273,8 +280,13 @@ export const useScheduleStore = defineStore(
       const auth = useAuthStore()
       const index = timetable.value.findIndex((c) => c.id === courseId)
       if (index > -1) {
+        const row_index=timetable.value[index].row_index
+        const col_index=timetable.value[index].col_index
         const removed = timetable.value.splice(index, 1)
-        await(deleteDragItem(removed[0].id))
+        await(updateCellData(currentClass.value?.id||0,currentSheet.value?.id||0,{
+          Row:row_index,
+          Col:col_index
+        }))
         console.log('删除拖动元素:', removed[0])
         emitOperation({
           type: 'delete',
@@ -304,7 +316,8 @@ export const useScheduleStore = defineStore(
       updateCourse,
       removeCourse,
       applyRemoteOperation,
-      operationQueue
+      operationQueue,
+      convertToCourse,
     }
   },
   {

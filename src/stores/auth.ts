@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import api from '../utils/api'
 import { useRouter } from 'vue-router'
+import { throwError } from 'element-plus/es/utils'
 interface User {
   username: string
   email?: string
@@ -24,8 +25,8 @@ export const useAuthStore = defineStore('auth', {
     async login(username: string, password: string) {
       try {
         const response = await api.post('/login', { username, password })
-        this.token = response.data.token
-        this.user = { username, id: response.data.id }
+        this.token = response.data.access_token
+        this.user = { username, id: response.data.user_id }
         this.isAuthenticated = true
 
         // 存储token和user到localStorage
@@ -75,21 +76,12 @@ export const useAuthStore = defineStore('auth', {
           this.user = JSON.parse(user)
         } else {
           // 如果只有token没有user，尝试获取用户信息
-          this.fetchUser()
+          // throwError('auth', '无user');
+          console.log('error')
         }
       }
     },
 
-    async fetchUser() {
-      try {
-        const response = await api.get('/auth/user')
-        this.user = response.data
-        // 更新localStorage中的user信息
-        localStorage.setItem('user', JSON.stringify(this.user))
-      } catch (error) {
-        this.logout() // 如果获取用户信息失败，强制退出
-      }
-    },
   },
   getters: {
     currentUser: (state) => state.user,

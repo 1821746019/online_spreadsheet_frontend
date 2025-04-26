@@ -98,7 +98,7 @@
           <el-select v-model="editingCourse.week_type" class="modern-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" v-if="editingCourse">
             <el-option label="单周" value="single" />
             <el-option label="双周" value="double" />
-            <el-option label="都有" value="douyou" />
+            <el-option label="都有" value="all" />
           </el-select>
         </div>
         <div class="button-group">
@@ -127,7 +127,7 @@ interface Course {
   id: number
   row_index: number
   col_index: number
-  week_type: 'single' | 'double' | 'douyou'
+  week_type: 'single' | 'double' | 'all'
   course: string
   teacher: string
   room: string

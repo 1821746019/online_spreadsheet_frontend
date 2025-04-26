@@ -140,11 +140,11 @@ export interface move {
   /**
    * 目标列索引（从1开始）
    */
-  col_index: number;
+  target_col: number;
   /**
    * 目标行索引（从1开始）
    */
-  row_index: number;
+  target_row: number;
   [property: string]: any;
 }
 export const moveDragItem = (drag_item_id: number,class_id: number, sheet_id: number,move: move) => instance.put(`/classes/${class_id}/sheet/${sheet_id}/drag-item/${drag_item_id}/move`, move);
@@ -163,7 +163,13 @@ export interface Cell {
 export const fetchCellData = (classId: number, sheetId: number) => {
   return instance.get(`/classes/${classId}/sheet/${sheetId}/cell`);
 };
-
+export interface putcell{
+  Row:number;
+  Col:number;
+}
+export const updateCellData=(classId: number, sheetId: number,putcell:putcell) => {
+  return instance.put(`/classes/${classId}/sheet/${sheetId}/cell`,putcell);
+};
 
 
 export default instance;

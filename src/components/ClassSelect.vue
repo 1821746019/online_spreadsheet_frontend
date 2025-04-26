@@ -7,6 +7,7 @@
         <span class="btn-text">创建班级</span>
       </button>
     </div>
+    <div v-if="loading" class="loading">加载中...</div>
 
     <!-- 创建班级对话框 -->
     <div v-if="showCreateDialog" class="modal-overlay">
@@ -92,7 +93,7 @@ interface ClassItem {
   create_time: string;
   update_time: string;
 }
-
+const loading = ref(false)
 const scheduleStore = useScheduleStore();
 const router = useRouter();
 const classList = ref<ClassItem[]>([]);
@@ -104,9 +105,18 @@ const formData = reactive({
 });
 
 const fetchClassList = async () => {
-  const classRes = await fetchClasses()
-  classList.value = classRes.data?.list || []
-  console.log('班级列表:', classList.value);
+  try {
+    loading.value = true
+    const classRes = await fetchClasses();
+    classList.value = classRes.data?.list || [];
+    console.log('班级列表:', classList.value);
+  } catch (error) {
+    console.error('获取班级列表失败:', error);
+    // 可以在这里设置默认值或提示用户
+    classList.value = []; // 避免 classList.value 变成 undefined
+  }finally{
+    loading.value = false
+  }
 };
 
 const createclass = async () => {
@@ -169,7 +179,12 @@ onMounted(() => {
   background-color: #f8fafc;
   min-height: 100vh;
 }
-
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #718096;
+  font-size: 16px;
+}
 .header {
   display: flex;
   justify-content: space-between;

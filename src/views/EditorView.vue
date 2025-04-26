@@ -17,12 +17,12 @@
         <span class="color-indicator" :style="{ backgroundColor: auth.user?.color || '#cccccc' }"></span>
       </div>
     </div> -->
-    <ScheduleGrid @courseMoved="handleCourseMoved" />
+    <ScheduleGrid />
   </div>
 </template>
 
 <script setup name="EditorView">
-import { ref, onMounted } from 'vue'
+import {  onMounted } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 import ScheduleGrid from '../components/ScheduleGrid.vue'
 // import { emitOperation } from '../utils/socket'
@@ -57,15 +57,15 @@ onMounted(()=>{
 //   store.setCurrentSemester(semester)
 // }
 
-function handleCourseMoved(course) {
-  emitOperation({
-    type: 'update',
-    data: course,
-    version: Date.now(),
-    timestamp: Date.now(),
-    userId: auth.user?.username || 'unknown'
-  })
-}
+// function handleCourseMoved(course) {
+//   emitOperation({
+//     type: 'update',
+//     data: course,
+//     version: Date.now(),
+//     timestamp: Date.now(),
+//     userId: auth.user?.username || 'unknown'
+//   })
+// }
 
 // function addNewCourse() {
 //   const newCourse = {
