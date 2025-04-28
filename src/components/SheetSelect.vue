@@ -98,9 +98,9 @@
             <span class="meta-value">{{ sheet.row }}×{{ sheet.col }}</span>
           </div>
         </div>
-        <div class="sheet-footer">
+        <!-- <div class="sheet-footer">
           <small>创建时间: {{ formatDate(sheet.create_time) }}</small>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
@@ -110,6 +110,7 @@
 import {  ref, onMounted } from 'vue'
 import { useRoute,useRouter } from 'vue-router'
 import * as api from '../utils/api'
+import { ElMessage } from 'element-plus';
 import { useScheduleStore } from '../stores/schedule'
 // 定义工作表接口
 export interface Sheet {
@@ -161,7 +162,9 @@ const fetchSheets = async () => {
       page_size: 10
     })
     console.log('工作表响应',response);
-    sheets.value = response.data.sheets
+    sheets.value = Array.isArray(response.data?.sheets)
+      ? response.data.sheets
+      : []
     console.log('工作表列表:', sheets.value)
   } catch (error) {
     console.error('获取工作表列表失败:', error)
@@ -183,14 +186,16 @@ const createSheet = async () => {
     // 调用API创建工作表
     const response = await api.create_sheet(<number>class_id, newSheet.value)
     scheduleStore.totalweek=newSheet.value.week
+    console.log(response.data)
     // 添加到列表
     sheets.value.push(response.data)
     // 重置表单并关闭对话框
     newSheet.value = { name: '', week: 1, row: 1, col: 1 }
     showCreateDialog.value = false
+    ElMessage.success('成功创建工作表')
   } catch (error) {
     console.error('创建工作表失败:', error)
-    alert('创建工作表失败，请重试')
+    showCreateDialog.value = false
   }
 }
 // 删除工作表
@@ -200,6 +205,7 @@ const deleteSheet = async (id: number) => {
   try {
     await api.delete_sheet(<number>class_id, id)
     sheets.value = sheets.value.filter(sheet => sheet.id !== id)
+    ElMessage.success('成功删除工作表')
   } catch (error) {
     console.error('删除工作表失败:', error)
     alert('删除工作表失败，请重试')

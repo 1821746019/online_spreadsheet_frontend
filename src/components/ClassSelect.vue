@@ -65,7 +65,7 @@
         <button class="delete-btn" @click.stop="deleteClassHandler(classItem.id)">
           <span class="delete-icon">×</span>
         </button>
-        <div class="class-meta">
+        <!-- <div class="class-meta">
           <div class="meta-item">
             <span class="meta-label">创建时间:</span>
             <span class="meta-value">{{ formatDate(classItem.create_time) }}</span>
@@ -74,7 +74,7 @@
             <span class="meta-label">更新时间:</span>
             <span class="meta-value">{{ formatDate(classItem.update_time) }}</span>
           </div>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
@@ -84,7 +84,8 @@ import { onMounted, ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useScheduleStore } from '../stores/schedule';
 import { createClass, fetchClasses, deleteClass } from '../utils/api'
-import SheetSelect from './SheetSelect.vue';
+import { ElMessage } from 'element-plus';
+
 
 interface ClassItem {
   id: number;
@@ -130,6 +131,7 @@ const createclass = async () => {
     formData.name = '';
     formData.create_sheet = false;
     formData.weeks = 1;
+    ElMessage.success('成功创建班级')
     await fetchClassList();
   } catch (error) {
     console.error('创建班级失败:', error);
@@ -140,6 +142,7 @@ const deleteClassHandler = async (classId: number) => {
   if (confirm('确定要删除这个班级吗？')) {
     try {
       await deleteClass(classId);
+      ElMessage.success('成功删除班级')
       await fetchClassList();
     } catch (error) {
       console.error('删除班级失败:', error);

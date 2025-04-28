@@ -407,6 +407,7 @@ async function saveCourse() {
 
       // 使用不可变数据操作减少响应式系统开销
       draftCourses.value = [...draftCourses.value, newCourse];
+      ElMessage.success('成功创建拖动元素')
     } else {
       // 使用细粒度状态更新
       store.updateCourse(courseToSave);

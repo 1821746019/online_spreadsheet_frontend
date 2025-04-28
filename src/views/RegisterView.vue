@@ -111,7 +111,7 @@ const handleRegister = async () => {
       router.push('/login');
     }, 1500);
   } catch (err: any) {
-    error.value = err.message || '注册失败，请稍后重试';
+    error.value = err.message || '注册失败，用户名或邮箱被使用';
   } finally {
     loading.value = false;
   }

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed,unref } from 'vue'
 import { emitOperation, type Operation } from '../utils/socket'
 import { ElMessage } from 'element-plus';
 import axios, {
@@ -186,22 +186,34 @@ export const useScheduleStore = defineStore(
         // 延迟冲突检查
         setTimeout(() => checkConflicts(finalCourse), 100)
         // 合并 API 调用并等待完成
-        await Promise.all(
-          [
-          updateDragItem(finalCourse.id, {
-            class_room: finalCourse.room,
-            content: finalCourse.course,
-            teacher: finalCourse.teacher,
-            selected_class_ids: [currentClass.value?.id || 0],
-            week_type: finalCourse.week_type,
-          }),
-          moveDragItem(finalCourse.id, currentClass.value?.id || 0, currentSheet.value?.id || 0, {
-            target_col: finalCourse.col_index,
-            target_row: finalCourse.row_index,
-          }),
+        const classId = currentClass.value?.id || 0;
+const sheetId = currentSheet.value?.id || 0;
 
-        ]
-      )
+const updatePayload = {
+  class_room: unref(finalCourse.room),
+  content: unref(finalCourse.course),
+  teacher: unref(finalCourse.teacher),
+  selected_class_ids: [classId],
+  week_type: unref(finalCourse.week_type),
+};
+
+const movePayload = {
+  target_col: unref(finalCourse.col_index),
+  target_row: unref(finalCourse.row_index),
+};
+
+// 如果两个请求无依赖关系，并行执行
+const results = await Promise.allSettled([
+  updateDragItem(unref(finalCourse.id), updatePayload),
+  moveDragItem(unref(finalCourse.id), classId, sheetId, movePayload),
+]);
+
+// 检查是否有失败的请求
+const failedRequests = results.filter(r => r.status === 'rejected');
+if (failedRequests.length) {
+  console.error("部分请求失败:", failedRequests);
+  throw new Error("API 调用失败");
+}
     ElMessage.success('目标拖动成功');
       } catch (error) {
         console.error('更新课程失败:', error)
