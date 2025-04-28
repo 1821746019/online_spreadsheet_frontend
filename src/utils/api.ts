@@ -111,7 +111,7 @@ export interface CreateDragItemRequest {
   /**
    * 教室
    */
-  classroom: string;
+  class_room: string;
   /**
    * 拖放元素内容
    */
@@ -128,7 +128,9 @@ export interface CreateDragItemRequest {
 }
 export const createDragItem = (params: CreateDragItemRequest) => instance.post('/drag-item', params);
 export const updateDragItem = (drag_item_id: number,params: CreateDragItemRequest) => instance.put(`/drag-item/${drag_item_id}`, params);
-export const deleteDragItem = (drag_item_id: number) => instance.delete(`/drag-item/${drag_item_id}`);
+export const deleteDragItem = (drag_item_id: number)=>{
+  return instance.delete(`/drag-item/${drag_item_id}`)
+};
 export const fetchDragItem = (drag_item_id: number) => instance.get(`/drag-item/${drag_item_id}`);
 export const fetchDragItemlist = (class_id: number) => instance.get(`${class_id}/drag-item`);
 
@@ -150,13 +152,14 @@ export const moveDragItem = (drag_item_id: number,class_id: number, sheet_id: nu
 
 //获取单元格数据
 export interface Cell {
-  col_index?: number;
   create_time?: Date;
   id?: number;
   item_id?: number | null;
   row_index?: number;
+  col_index?: number;
   sheet_id?: number;
   update_time?: Date;
+  week_type?:string;
   [property: string]: any;
 }
 export const fetchCellData = (classId: number, sheetId: number) => {

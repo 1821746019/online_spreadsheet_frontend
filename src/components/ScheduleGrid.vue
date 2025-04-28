@@ -7,7 +7,7 @@
         <div v-for="course in draftCourses" :key="course.id"
              class="course-block draft" draggable="true"
              @dragstart="handleDragStart($event, course)"
-             @dragend="handleDragEnd">
+             @dragend="handleDragEnd"@dblclick="showupdate(course)">
           <div class="course-content">
             <span class="course-title">{{ course.course }}</span>
             <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
@@ -15,7 +15,7 @@
         </div>
       </div>
     </div>
-
+    <div v-if="loading" class="loading">加载中...</div>
     <div class="week-selector">
       <el-select v-model="store.currentWeek" placeholder="第 1 周" @change="handleWeekChange">
         <el-option v-for="week in store.totalweek" :key="week" :label="`第 ${week} 周`" :value="week" />
@@ -53,7 +53,6 @@
       </div>
     </div>
   </div>
-
   <!-- 编辑模态框 -->
   <teleport to="body">
     <div v-if="showEditDialog" class="edit-modal">
@@ -71,13 +70,13 @@
           <label>教室</label>
           <el-input v-model="editingCourse.room" type="text" class="modern-input"></el-input>
         </div>
-        <div class="form-group">
+        <div class="form-group"v-if="!drgamitemlog">
           <label>星期</label>
           <el-select v-model="editingCourse.col_index" class="modern-input">
             <el-option v-for="(day, index) in days" :key="day" :label="dayMap[day]" :value="index + 1" />
           </el-select>
         </div>
-        <div class="form-group">
+        <div class="form-group"v-if="!drgamitemlog">
           <label>时间段</label>
           <el-select v-model="editingCourse.row_index" class="modern-input">
             <el-option v-for="(time, index) in realtime" :key="time" :label="time" :value="index + 1" />
@@ -88,18 +87,24 @@
           <el-select v-model="editingCourse.week_type" class="modern-input">
             <el-option label="单周" value="single" />
             <el-option label="双周" value="double" />
-            <el-option label="都有" value="all" />
+            <el-option label="全周" value="all" />
           </el-select>
         </div>
         <div class="button-group">
-          <button @click="showEditDialog = false" class="cancel-btn">
+          <button @click="showEditDialog = false,drgamitemlog=false,savedrag=false" class="cancel-btn">
             <span>取消</span>
           </button>
-          <button @click="handleDelete" class="delete-btn" v-if="editingCourse">
-            <span>删除课程</span>
+          <button @click="handleDelete" class="delete-btn" v-if="editingCourse&&!drgamitemlog">
+            <span>删除表格中课程</span>
           </button>
-          <button @click="saveCourse" class="save-btn">
+          <button @click="saveCourse" class="save-btn"v-if="!savedrag">
             <span>保存</span>
+          </button>
+          <button @click="save_drag" class="save-btn"v-if="savedrag">
+            <span>保存拖动元素</span>
+          </button>
+          <button @click="delete_drag_item"class="delete-btn" v-if="drgamitemlog">
+            <span>删除拖动元素</span>
           </button>
         </div>
       </div>
@@ -110,13 +115,14 @@
 <script setup>
 import {  onMounted, ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
-import { createDragItem,fetchDragItemlist,updateCellData } from '../utils/api'
+import { createDragItem,deleteDragItem,fetchDragItemlist,updateCellData, updateDragItem } from '../utils/api'
+import { ElMessage } from 'element-plus';
 const store = useScheduleStore()
+const loading = ref(false)
 const emit = defineEmits(['courseMoved'])
 // 新增状态
 const draftCourses = ref([])
 const coursePool = ref(null)
-
 async function handleWeekChange(week) {
   try {
     store.currentWeek = week
@@ -159,10 +165,19 @@ function getCoursesByDay(day) {
   });
 }
 
+const originalPositions = new Map()
+
 function handleDragStart(e, course) {
   e.dataTransfer.setData('text/plain', course.id)
   e.dataTransfer.effectAllowed = 'move'
   e.target.classList.add('dragging')
+
+  // 保存原位置信息
+  originalPositions.set(course.id, {
+    row_index: course.row_index,
+    col_index: course.col_index,
+    element: e.target
+  })
 }
 
 function handleDragOver(e) {
@@ -170,6 +185,27 @@ function handleDragOver(e) {
 }
 
 function handleDragEnd(e) {
+  const courseId = e.dataTransfer.getData('text/plain')
+  const originalPosition = originalPositions.get(courseId)
+
+  if (originalPosition) {
+    // 如果没有成功放置，回退到原位置
+    if (e.dataTransfer.dropEffect !== 'move') {
+      const { row_index, col_index, element } = originalPosition
+      element.style.transition = 'all 0.3s ease'
+      element.style.top = `${(row_index - 1) * 80}px`
+      element.style.left = '4px'
+      element.style.right = '4px'
+
+      // 过渡结束后移除样式
+      setTimeout(() => {
+        element.style.transition = ''
+      }, 300)
+    }
+
+    originalPositions.delete(courseId)
+  }
+
   e.target.classList.remove('dragging')
 }
 
@@ -186,14 +222,42 @@ async function handleDrop(e, day) {
     console.warn('超出时间范围')
     return
   }
+
   // 使用 Map 快速查找课程
   let originalCourse = draftCourses.value.find(c => c.id === courseId) ||
                       store.timetable.find(c => c.id === courseId)
   if (!originalCourse) return
+
   const dayIndex = days.indexOf(day) + 1
-  if(originalCourse.row_index===dayIndex&&originalCourse.col_index===slotIndex){
+  if(originalCourse.col_index === dayIndex && originalCourse.row_index === slotIndex) {
     return
   }
+
+  // 检查目标位置是否有冲突
+  const targetDay = day
+  const targetTime = realtime[slotIndex - 1]
+  const targetWeekType = originalCourse.week_type
+
+  const hasConflict = store.timetable.some(course => {
+    if (course.id === courseId) return false
+
+    const courseDay = days[course.col_index - 1]
+    const courseTime = realtime[course.row_index - 1]
+    const courseWeekType = course.week_type
+
+    return courseDay === targetDay &&
+           courseTime === targetTime &&
+           (courseWeekType === 'all' ||
+            targetWeekType === 'all' ||
+            courseWeekType === targetWeekType)
+  })
+
+  if (hasConflict) {
+    ElMessage.warning('目标位置有冲突，取消放置');
+    console.log('目标位置有冲突，取消放置')
+    return
+  }
+
   const updatedCourse = {
     ...originalCourse,
     col_index: dayIndex,
@@ -208,17 +272,19 @@ async function handleDrop(e, day) {
       draftCourses.value = draftCourses.value.filter(c => c.id !== courseId)
     } else {
       // 正式课程内部移动
-      await Promise.all([
-        updateCellData(
+      const promises = [store.updateCourse(updatedCourse)]
+      // 只有当原课程没有冲突时才删除原位置
+      if (!originalCourse.hasConflict) {
+        promises.push(updateCellData(
           store.currentClass.id || 0,
           store.currentSheet.id || 0,
           {
             Row: originalCourse.row_index,
             Col: originalCourse.col_index
           }
-        ),
-        store.updateCourse(updatedCourse)
-      ])
+        ))
+      }
+      await Promise.all(promises)
     }
   } catch (error) {
     console.error('拖放操作失败:', error)
@@ -240,21 +306,44 @@ function getUserColor(userId) {
 // 编辑相关状态
 const editingCourse = ref(null)
 const showEditDialog = ref(false)
-
+const drgamitemlog=ref(false)
+const savedrag=ref(false)
 function handleDblClick(course) {
+  console.log('hand',course)
   editingCourse.value = {
-    col_index: 1,
-    row_index: 1,
     week_type: 'all',
     ...(course || {}),
-    id: course?.id || Math.random(100).toString()//因为id类型问题现在获取的课表无法拖动，创建元素，更新元素等api没有导入
+    id: course?.id //因为id类型问题现在获取的课表无法拖动，创建元素，更新元素等api没有导入
   }
+  // console.log('edi',editingCourse.value)
   showEditDialog.value = true
 }
+function showupdate(course){
+  drgamitemlog.value=true
+  savedrag.value=true
+  handleDblClick(course)
+}
+async function save_drag(){
+  await updateDragItem(editingCourse.value.id, {
+            class_room: editingCourse.value.room,
+            content: editingCourse.value.course,
+            teacher: editingCourse.value.teacher,
+            selected_class_ids: [store.currentClass.id],
+            week_type: editingCourse.value.week_type,
+          })
+   console.log('edi',editingCourse.value)
 
+    showEditDialog.value=false
+    drgamitemlog.value=false
+    savedrag.value=false
+    draftCourses.value = draftCourses.value.filter(
+    course => course.id !== editingCourse.value.id
+  )
+    await getdraglist()
+}
 // 显示创建对话框
 function showCreateDialog() {
-
+  drgamitemlog.value=true
   editingCourse.value = {
     id: Math.random(100).toString(),
     course: '新课程',
@@ -264,43 +353,85 @@ function showCreateDialog() {
   }
   showEditDialog.value = true
 }
-
+async function delete_drag_item(params) {
+  if (editingCourse.value && confirm('确认删除该拖动课程？')) {
+    try{
+    await deleteDragItem(editingCourse.value.id)
+    ElMessage.success('删除拖动元素成功')
+    draftCourses.value = draftCourses.value.filter(
+    course => course.id !== editingCourse.value.id
+  )
+  showEditDialog.value=false
+    drgamitemlog.value=false
+    savedrag.value=false
+    await getdraglist()
+  }catch(e){
+      ElMessage.warning('必须解除该课程在所有表格的关联')
+  }
+  }
+}
 async function saveCourse() {
-  if (editingCourse.value) {
-    const courseToSave = {
-      ...editingCourse.value,
-      classId: store.currentClass?.id || 0
-    }
+  if (!editingCourse.value) return;
+  console.log('edi',editingCourse.value)
+  // 缓存当前班级ID，减少重复访问响应式属性
+  const currentClassId = store.currentClass?.id || 0;
 
-    // 如果是新课程，添加到待拖动区
-    if (!store.timetable.some(c => c.id === courseToSave.id) &&
-        !draftCourses.value.some(c => c.id === courseToSave.id)) {
-        const response=await createDragItem({
-          content: courseToSave.course,
-          teacher: courseToSave.teacher,
-          classroom: courseToSave.room,
-          week_type: courseToSave.week_type,
-          selected_class_ids: [store.currentClass?.id || 0],
-        })
-        courseToSave.id=response.data.id.toString()
-        draftCourses.value.push({...courseToSave})
+  // 使用对象展开语法避免污染原始数据
+  const courseToSave = {
+    ...editingCourse.value,
+    classId: currentClassId
+  };
 
+  try {
+    // 使用Set实现O(1)复杂度查找，替代数组some方法
+    const existingIds = new Set([
+      ...store.timetable.map(c => c.id),
+      ...draftCourses.value.map(c => c.id)
+    ]);
+
+    if (!existingIds.has(courseToSave.id)) {
+      // 合并接口参数对象
+      const response = await createDragItem({
+        content: courseToSave.course,
+        teacher: courseToSave.teacher,
+        class_room: courseToSave.room,
+        week_type: courseToSave.week_type,
+        selected_class_ids: [currentClassId], // 使用缓存值
+      });
+      editingCourse.value.id=response.data.id.toString()
+      // 批量更新对象属性
+      const newCourse = {
+        ...courseToSave,
+        id: response.data.id.toString()
+      };
+
+      // 使用不可变数据操作减少响应式系统开销
+      draftCourses.value = [...draftCourses.value, newCourse];
     } else {
-      store.updateCourse(courseToSave)
+      // 使用细粒度状态更新
+      store.updateCourse(courseToSave);
     }
 
-    showEditDialog.value = false
+    // 延迟界面更新到异步操作完成后
+    showEditDialog.value = false;
+  } catch (error) {
+    console.error('保存课程失败:', error);
   }
 }
 
-const handleDelete = () => {
+const handleDelete = async() => {
   if (editingCourse.value && confirm('确认删除该课程？')) {
     store.removeCourse(editingCourse.value.id)
-    draftCourses.value = draftCourses.value.filter(c => c.id !== editingCourse.value.id)
+    // draftCourses.value = draftCourses.value.filter(c => c.id !== editingCourse.value.id)
     showEditDialog.value = false
+    ElMessage.success('删除成功');
+    draftCourses.value=[]
+    await getdraglist()
   }
 }
-onMounted(async()=>{
+async function getdraglist(){
+  try{
+  loading.value = true
   console.log('ks',store.currentClass.id)
   const response=await fetchDragItemlist(store.currentClass.id)
   console.log(response)
@@ -314,12 +445,24 @@ onMounted(async()=>{
 const differentCourses = dragcourses.filter(dragCourse =>
   !store.timetable.some(timetableCourse =>
     timetableCourse.id === dragCourse.id
-  )
+  )&&
+      !draftCourses.value.some(draftCourse =>
+        draftCourse.id === dragCourse.id
+      )
 );
   console.log('diff',differentCourses )
   if(differentCourses){
   draftCourses.value.push(...differentCourses)
+  }}catch(e){
+    loading.value = false
+    throw(e)
+  }finally{
+    loading.value = false
+
   }
+}
+onMounted(async()=>{
+  await getdraglist()
 })
 </script>
 
@@ -330,7 +473,12 @@ const differentCourses = dragcourses.filter(dragCourse =>
   display: flex;
   justify-content: center;
 }
-
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #718096;
+  font-size: 16px;
+}
 .schedule-grid {
   padding: 20px;
   max-width: 1500px;
@@ -514,8 +662,8 @@ const differentCourses = dragcourses.filter(dragCourse =>
   background: white;
   padding: 2rem;
   border-radius: 16px;
-  width: 440px;
-  max-height: calc(100vh - 80px);
+  max-width: 500px;
+  max-height: calc(100vh - 100px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   transform: translateY(0);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);

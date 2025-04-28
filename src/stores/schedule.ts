@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { emitOperation, type Operation } from '../utils/socket'
+import { ElMessage } from 'element-plus';
 import axios, {
   fetchCellData,
   fetchDragItem,
@@ -84,6 +85,7 @@ export const useScheduleStore = defineStore(
 
       try {
         const cellresponse = fetchCellData(currentClass.value.id, currentSheet.value?.id || 0)
+        console.log('cell',(await cellresponse).data)
         const cellData = (await cellresponse).data.filter((item) => item.item_id !== null)
         const dragItemResponse = await Promise.all(
           cellData.map((Item) => fetchDragItem(Item.item_id)),
@@ -180,14 +182,14 @@ export const useScheduleStore = defineStore(
         // 使用 Map 快速更新
         courseMap.value.set(finalCourse.id.toString(), finalCourse)
         timetable.value = Array.from(courseMap.value.values())
-
+        console.log('finalcourse',finalCourse)
         // 延迟冲突检查
         setTimeout(() => checkConflicts(finalCourse), 100)
-
         // 合并 API 调用并等待完成
-        await Promise.all([
+        await Promise.all(
+          [
           updateDragItem(finalCourse.id, {
-            classroom: finalCourse.room,
+            class_room: finalCourse.room,
             content: finalCourse.course,
             teacher: finalCourse.teacher,
             selected_class_ids: [currentClass.value?.id || 0],
@@ -197,7 +199,10 @@ export const useScheduleStore = defineStore(
             target_col: finalCourse.col_index,
             target_row: finalCourse.row_index,
           }),
-        ])
+
+        ]
+      )
+    ElMessage.success('目标拖动成功');
       } catch (error) {
         console.error('更新课程失败:', error)
         throw error

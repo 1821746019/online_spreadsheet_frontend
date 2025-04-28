@@ -105,7 +105,7 @@
           <button @click="showEditDialog = false" class="cancel-btn">
             <span>取消</span>
           </button>
-          <button @click="handleDelete(editingCourse?.id || 0)" class="delete-btn" v-if="editingCourse">
+          <button @click="handleDelete(editingCourse?.id.toString())" class="delete-btn" v-if="editingCourse">
             <span>删除课程</span>
           </button>
           <button @click="saveCourse" class="save-btn">
@@ -121,7 +121,7 @@
 import { ref, computed } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 import { useAuthStore } from '../stores/auth'
-import { ElInput } from 'element-plus'
+import { ElInput,ElMessage } from 'element-plus'
 
 interface Course {
   id: number
@@ -172,9 +172,11 @@ const handleEdit = (row: Course) => {
   showEditDialog.value = true
 }
 
-const handleDelete = (id: number) => {
+const handleDelete = (id: string) => {
   store.removeCourse(id)
   console.log('Deleted course:', id)
+  ElMessage.success('删除成功');
+
 }
 
 // 保存修改

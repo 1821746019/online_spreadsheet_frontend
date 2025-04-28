@@ -24,7 +24,7 @@
               placeholder="请输入班级名称"
             >
           </div>
-
+<!--
           <div class="form-group checkbox-group">
             <label>
               <input
@@ -44,7 +44,7 @@
               min="1"
               placeholder="请输入周数"
             >
-          </div>
+          </div> -->
 
           <div class="form-actions">
             <button type="button" class="cancel-btn" @click="showCreateDialog = false">取消</button>
