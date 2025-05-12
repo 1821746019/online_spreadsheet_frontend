@@ -53,7 +53,18 @@ export const useAuthStore = defineStore('auth', {
 
     async logout() {
       console.log('token',this.token)
+      try {
       await api.post(`/logout?access_token=${this.token}`) // 发送登出请求到后端
+      }
+      catch (error) {
+        console.error('Logout failed:', error)
+        this.token = null
+        this.user = null
+        this.isAuthenticated = false
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+        // throw error
+      }
       // if (response.status !== 200) {
       //   throw new Error('Logout failed')
       // }

@@ -112,6 +112,7 @@ export interface CreateDragItemRequest {
    * 教室
    */
   class_room: string;
+  teacher:string;
   /**
    * 拖放元素内容
    */

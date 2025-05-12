@@ -12,6 +12,7 @@ import axios, {
 } from '../utils/api'
 import { useAuthStore } from './auth'
 import { Item } from 'ant-design-vue/es/menu'
+import { el } from 'element-plus/es/locale';
 
 export interface Class {
   id: number
@@ -80,46 +81,65 @@ export const useScheduleStore = defineStore(
     const auth = useAuthStore()
 
     async function fetchTimetable(week: number) {
-      currentWeek.value = week
-      if (!currentClass.value) return
+      currentWeek.value = week;
+      if (!currentClass.value?.id) {
+        timetable.value = [];
+        courseMap.value.clear();
+        return;
+      }
 
       try {
-        const cellresponse = fetchCellData(currentClass.value.id, currentSheet.value?.id || 0)
-        console.log('cell',(await cellresponse).data)
-        const cellData = (await cellresponse).data.filter((item) => item.item_id !== null)
-        const dragItemResponse = await Promise.all(
-          cellData.map((Item) => fetchDragItem(Item.item_id)),
-        )
-        const dragItemData = dragItemResponse.map((response) => response.data)
+        const sheetId = currentSheet.value?.id;
+        if (!sheetId) {
+          throw new Error("没有sheetid");
+        }
 
-        const newCourses = cellData.map((cell, index) => convertToCourse(cell, dragItemData[index]))
+        const response = await fetchCellData(currentClass.value.id, sheetId);
+        // console.log('cell', response.data);
+
+        const cellData = response.data.filter((item) => item.item_id !== null);
+
+        const newCourses = cellData.map(cell => ({
+          classId: currentClass.value!.id, // 使用 ! 因为前面已经检查过
+          col_index: cell.col_index,
+          course: cell.content,
+          hasConflict: false,
+          id: cell.item_id.toString(),
+          room: cell.class_room,
+          row_index: cell.row_index,
+          teacher: cell.teacher,
+          week_type: cell.week_type || 'all',
+        }));
 
         // 更新 Map 和数组
-        courseMap.value.clear()
+        courseMap.value.clear();
         newCourses.forEach((course) => {
-          courseMap.value.set(course.id, course)
-        })
-        timetable.value = newCourses
+          courseMap.value.set(course.id, course);
+        });
+        timetable.value = newCourses;
+        ElMessage.success('获取课表成功')
       } catch (error) {
-        timetable.value = []
-        courseMap.value.clear()
-        console.error('获取课表失败:', error)
+        timetable.value = [];
+        courseMap.value.clear();
+        console.error('获取课表失败:', error);
+        // 考虑在这里添加错误处理，如显示用户通知
+        ElMessage.warning('获取课表失败')
       }
     }
-    const convertToCourse = (cell: any, item: any): Course => {
-      return {
-        id: item.id.toString(),
-        row_index: cell.row_index,
-        col_index: cell.col_index,
-        course: item.content,
-        teacher: item.teacher,
-        room: item.classroom,
-        week_type: item.week_type || 'single', // 默认 single
-        classId: currentClass.value?.id || 0, // 这里使用 item.id 作为 classId，如果不正确请调整
-        // lastUpdatedBy 和 hasConflict 是可选的，可以不赋值
-        hasConflict: false,
-      }
-    }
+    // const convertToCourse = (cell: any, item: any): Course => {
+    //   return {
+    //     id: item.id.toString(),
+    //     row_index: cell.row_index,
+    //     col_index: cell.col_index,
+    //     course: item.content,
+    //     teacher: item.teacher,
+    //     room: item.classroom,
+    //     week_type: item.week_type || 'single', // 默认 single
+    //     classId: currentClass.value?.id || 0, // 这里使用 item.id 作为 classId，如果不正确请调整
+    //     // lastUpdatedBy 和 hasConflict 是可选的，可以不赋值
+    //     hasConflict: false,
+    //   }
+    // }
     async function setCurrentClass(classInfo: Class) {
       currentClass.value = classInfo
     }
@@ -167,62 +187,56 @@ export const useScheduleStore = defineStore(
       }
     }
     async function updateCourse(updatedCourse: Course) {
-      const operationId = `update-${Date.now()}`
-      pendingOperations.value.add(operationId)
+  const operationId = `update-${Date.now()}`;
+  pendingOperations.value.add(operationId);
 
-      try {
-        const auth = useAuthStore()
-        const finalCourse = {
-          ...updatedCourse,
-          classId: currentClass.value?.id || 0,
-          lastUpdatedBy: auth.$state.user?.username || '未知用户',
-          week_type: updatedCourse.week_type || 'all',
-        }
+  try {
+    // 1. 准备数据
+    const auth = useAuthStore();
+    const classId = currentClass.value?.id || 0;
+    const sheetId = currentSheet.value?.id || 0;
 
-        // 使用 Map 快速更新
-        courseMap.value.set(finalCourse.id.toString(), finalCourse)
-        timetable.value = Array.from(courseMap.value.values())
-        console.log('finalcourse',finalCourse)
-        // 延迟冲突检查
-        setTimeout(() => checkConflicts(finalCourse), 100)
-        // 合并 API 调用并等待完成
-        const classId = currentClass.value?.id || 0;
-const sheetId = currentSheet.value?.id || 0;
+    // 2. 构建最终课程对象
+    const finalCourse = {
+      ...updatedCourse,
+      classId,
+      lastUpdatedBy: auth.$state.user?.username || '未知用户',
+      week_type: updatedCourse.week_type || 'all',
+    };
 
-const updatePayload = {
-  class_room: unref(finalCourse.room),
-  content: unref(finalCourse.course),
-  teacher: unref(finalCourse.teacher),
-  selected_class_ids: [classId],
-  week_type: unref(finalCourse.week_type),
-};
+    // 3. 更新本地状态
+    courseMap.value.set(finalCourse.id.toString(), finalCourse);
+    timetable.value = Array.from(courseMap.value.values());
 
-const movePayload = {
-  target_col: unref(finalCourse.col_index),
-  target_row: unref(finalCourse.row_index),
-};
+    // 4. 异步检查冲突（不阻塞主流程）
+    setTimeout(() => checkConflicts(finalCourse), 100);
 
-// 如果两个请求无依赖关系，并行执行
-const results = await Promise.allSettled([
-  updateDragItem(unref(finalCourse.id), updatePayload),
-  moveDragItem(unref(finalCourse.id), classId, sheetId, movePayload),
-]);
+    // 5. 并行API调用
+    const [updateResult, moveResult] = await Promise.all([
+      updateDragItem(finalCourse.id, {
+        class_room: finalCourse.room,
+        content: finalCourse.course,
+        teacher: finalCourse.teacher,
+        selected_class_ids: [classId],
+        week_type: finalCourse.week_type,
+      }),
+      moveDragItem(finalCourse.id, classId, sheetId, {
+        target_col: finalCourse.col_index,
+        target_row: finalCourse.row_index,
+      }),
+    ]);
 
-// 检查是否有失败的请求
-const failedRequests = results.filter(r => r.status === 'rejected');
-if (failedRequests.length) {
-  console.error("部分请求失败:", failedRequests);
-  throw new Error("API 调用失败");
-}
+    // 6. 显示成功消息
     ElMessage.success('目标拖动成功');
-      } catch (error) {
-        console.error('更新课程失败:', error)
-        throw error
-      } finally {
-        pendingOperations.value.delete(operationId)
-      }
-    }
 
+  } catch (error) {
+    console.error('更新课程失败:', error);
+    ElMessage.error('部分请求失败，请稍后重试');
+    throw error;
+  } finally {
+    pendingOperations.value.delete(operationId);
+  }
+}
     function checkConflicts(course: Course) {
       const { start, end } = getTimeFromRowIndex(course.row_index)
       const day = getDayFromColIndex(course.col_index)
@@ -298,7 +312,7 @@ if (failedRequests.length) {
       pendingOperations.value.add(operationId)
 
       try {
-        const auth = useAuthStore()
+        // const auth = useAuthStore()
         const course = courseMap.value.get(courseId)
         if (course) {
           courseMap.value.delete(courseId)
@@ -332,7 +346,7 @@ if (failedRequests.length) {
       removeCourse,
       applyRemoteOperation,
       operationQueue,
-      convertToCourse,
+      // convertToCourse,
       totalweek
     }
   },

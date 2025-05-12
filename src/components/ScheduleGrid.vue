@@ -210,84 +210,90 @@ function handleDragEnd(e) {
 }
 
 async function handleDrop(e, day) {
-  e.preventDefault()
-  const courseId = e.dataTransfer.getData('text/plain')
-  const targetColumn = e.currentTarget
-  const rect = targetColumn.getBoundingClientRect()
-  const mouseY = e.clientY - rect.top
+  e.preventDefault();
 
-  // 计算目标时间槽
-  const slotIndex = Math.floor(mouseY / 80) + 1
+  // 提取数据
+  const courseId = e.dataTransfer.getData('text/plain');
+  const targetColumn = e.currentTarget;
+  const { top } = targetColumn.getBoundingClientRect();
+  const mouseY = e.clientY - top;
+
+  // 计算目标时间槽并验证范围
+  const slotIndex = Math.floor(mouseY / 80) + 1;
   if (slotIndex < 1 || slotIndex > realtime.length) {
-    console.warn('超出时间范围')
-    return
+    console.warn('超出时间范围');
+    return;
   }
 
-  // 使用 Map 快速查找课程
-  let originalCourse = draftCourses.value.find(c => c.id === courseId) ||
-                      store.timetable.find(c => c.id === courseId)
-  if (!originalCourse) return
+  // 查找课程（优先从草稿中查找）
+  const originalCourse = draftCourses.value.find(c => c.id === courseId) ||
+                        store.timetable.find(c => c.id === courseId);
+  if (!originalCourse) return;
 
-  const dayIndex = days.indexOf(day) + 1
-  if(originalCourse.col_index === dayIndex && originalCourse.row_index === slotIndex) {
-    return
+  // 检查是否是相同位置
+  const dayIndex = days.indexOf(day) + 1;
+  if (originalCourse.col_index === dayIndex && originalCourse.row_index === slotIndex) {
+    return;
   }
 
-  // 检查目标位置是否有冲突
-  const targetDay = day
-  const targetTime = realtime[slotIndex - 1]
-  const targetWeekType = originalCourse.week_type
+  // 检查冲突
+  const targetDay = day;
+  const targetTime = realtime[slotIndex - 1];
+  const targetWeekType = originalCourse.week_type;
 
   const hasConflict = store.timetable.some(course => {
-    if (course.id === courseId) return false
+    if (course.id === courseId) return false;
 
-    const courseDay = days[course.col_index - 1]
-    const courseTime = realtime[course.row_index - 1]
-    const courseWeekType = course.week_type
+    const courseDay = days[course.col_index - 1];
+    const courseTime = realtime[course.row_index - 1];
+    const courseWeekType = course.week_type;
 
     return courseDay === targetDay &&
            courseTime === targetTime &&
-           (courseWeekType === 'all' ||
-            targetWeekType === 'all' ||
-            courseWeekType === targetWeekType)
-  })
+           (courseWeekType === 'all' || targetWeekType === 'all' || courseWeekType === targetWeekType);
+  });
 
   if (hasConflict) {
     ElMessage.warning('目标位置有冲突，取消放置');
-    console.log('目标位置有冲突，取消放置')
-    return
+    return;
   }
 
+  // 准备更新数据
   const updatedCourse = {
     ...originalCourse,
     col_index: dayIndex,
     row_index: slotIndex
-  }
+  };
 
-  // 批量处理更新
   try {
-    if (draftCourses.value.some(c => c.id === courseId)) {
-      // 从待拖动区移动到正式课程
-      await store.updateCourse(updatedCourse)
-      draftCourses.value = draftCourses.value.filter(c => c.id !== courseId)
+    const isFromDraft = draftCourses.value.some(c => c.id === courseId);
+
+    if (isFromDraft) {
+      // 从草稿区移动到正式课程
+      await store.updateCourse(updatedCourse);
+      draftCourses.value = draftCourses.value.filter(c => c.id !== courseId);
     } else {
       // 正式课程内部移动
-      const promises = [store.updateCourse(updatedCourse)]
-      // 只有当原课程没有冲突时才删除原位置
+      const updateOperations = [store.updateCourse(updatedCourse)];
+
       if (!originalCourse.hasConflict) {
-        promises.push(updateCellData(
-          store.currentClass.id || 0,
-          store.currentSheet.id || 0,
-          {
-            Row: originalCourse.row_index,
-            Col: originalCourse.col_index
-          }
-        ))
+        updateOperations.push(
+          updateCellData(
+            store.currentClass.id || 0,
+            store.currentSheet.id || 0,
+            {
+              Row: originalCourse.row_index,
+              Col: originalCourse.col_index
+            }
+          )
+        );
       }
-      await Promise.all(promises)
+
+      await Promise.all(updateOperations);
     }
   } catch (error) {
-    console.error('拖放操作失败:', error)
+    console.error('拖放操作失败:', error);
+    ElMessage.error('操作失败，请重试');
   }
 }
 
@@ -422,6 +428,7 @@ async function saveCourse() {
 
 const handleDelete = async() => {
   if (editingCourse.value && confirm('确认删除该课程？')) {
+    console.log('deledi',editingCourse.value)
     store.removeCourse(editingCourse.value.id)
     // draftCourses.value = draftCourses.value.filter(c => c.id !== editingCourse.value.id)
     showEditDialog.value = false
@@ -441,6 +448,7 @@ async function getdraglist(){
   course: item.content,      // 假设原字段是courseName
   teacher: item.teacher,    // 假设原字段是teacherName
   room: item.classroom,         // 直接使用classroom字段
+  week_type: item.week_type,   // 假设原字段是weekType
   // 可以继续添加其他需要的字段...
 }))
 const differentCourses = dragcourses.filter(dragCourse =>
