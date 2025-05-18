@@ -125,11 +125,23 @@ const draftCourses = ref([])
 const coursePool = ref(null)
 async function handleWeekChange(week) {
   try {
+    // 确保weekToSheetMap已初始化
+    if (!store.weekToSheetMap || Object.keys(store.weekToSheetMap).length === 0) {
+      await store.fetchSheets(store.currentClass?.id)
+    }
+    
     store.currentWeek = week
+    const sheetId = store.weekToSheetMap[week]
+    
+    if (sheetId === undefined) {
+      throw new Error(`周数${week}没有对应的课表数据`)
+    }
+    
+    await store.setCurrentSheet({ id: sheetId, week })
     await store.fetchTimetable(week)
-
   } catch (error) {
-    console.error('Failed to change week:', error)
+    console.error('切换周数失败:', error)
+    ElMessage.error(`切换周数失败: ${error.message}`)
   }
 }
 
@@ -476,6 +488,9 @@ async function getdraglist() {
   }
 }
 onMounted(async()=>{
+  if (store.currentClass?.id) {
+    await store.fetchSheets(store.currentClass.id)
+  }
   await getdraglist()
 })
 </script>

@@ -4,28 +4,28 @@
       <h1 class="page-title">当前班级：{{ class_name }}</h1>
       <button @click="showCreateDialog = true" class="create-btn">
         <span class="btn-icon">+</span>
-        <span class="btn-text">创建工作表</span>
+        <span class="btn-text">创建课程表</span>
       </button>
     </div>
 
     <!-- 创建工作表对话框 -->
     <div v-if="showCreateDialog" class="modal-overlay">
       <div class="modal-content">
-        <h2>创建工作表</h2>
+        <h2>创建课程表</h2>
         <form @submit.prevent="createSheet">
           <div class="form-group">
-            <label for="name">工作表名称 <span class="required">*</span></label>
+            <label for="name">课程表名称 <span class="required">*</span></label>
             <input
               id="name"
               v-model="newSheet.name"
               type="text"
               required
-              placeholder="输入工作表名称"
+              placeholder="输入课程表名称"
             />
           </div>
 
           <div class="form-group">
-            <label for="week">周数 <span class="required">*</span></label>
+            <label for="week">当前周数<span class="required">*</span></label>
             <input
               id="week"
               v-model.number="newSheet.week"
@@ -45,6 +45,7 @@
               min="1"
               required
               placeholder="输入行数"
+              value="8"
             />
           </div>
 
@@ -57,8 +58,10 @@
               min="1"
               required
               placeholder="输入列数"
+              value="7"
             />
           </div>
+
 
           <div class="form-actions">
             <button type="button" class="cancel-btn" @click="showCreateDialog = false">取消</button>

@@ -72,11 +72,37 @@ export const useScheduleStore = defineStore(
     const timetable = ref<Course[]>([])
     const courseMap = ref(new Map<string, Course>()) // 新增 Map 存储课程
     const currentWeek = ref(1)
+    const weekToSheetMap = ref<Record<number, number>>({})
     const totalweek=ref(20)
     const currentClass = ref<Class | null>(null)
     const currentSheet = ref<Sheet | null>(null)
     const collaborators = ref([])
     // const auth = useAuthStore()
+
+    async function fetchSheets(classId: number) {
+      try {
+        const response = await axios.get(`/classes/${classId}/sheet`)
+        if (!response.data?.sheets) {
+          throw new Error('API返回数据格式不正确，缺少sheets字段')
+        }
+        
+        console.log('API响应数据:', response.data)
+        weekToSheetMap.value = response.data.sheets.reduce((map, sheet) => {
+          if (!sheet.week || !sheet.id) {
+            console.warn('无效的sheet数据:', sheet)
+            return map
+          }
+          map[sheet.week] = sheet.id
+          return map
+        }, {})
+        
+        console.log('初始化后的weekToSheetMap:', weekToSheetMap.value)
+      } catch (error) {
+        console.error('获取sheet列表失败:', error)
+        ElMessage.error('初始化周数映射表失败')
+        throw error // 抛出错误以便调用方处理
+      }
+    }
 
     async function fetchTimetable(week: number) {
       currentWeek.value = week;
@@ -87,9 +113,9 @@ export const useScheduleStore = defineStore(
       }
 
       try {
-        const sheetId = currentSheet.value?.id;
+        const sheetId = weekToSheetMap.value[week] || currentSheet.value?.id;
         if (!sheetId) {
-          throw new Error("没有sheetid");
+          throw new Error("没有有效的sheetid");
         }
 
         const response = await fetchCellData(currentClass.value.id, sheetId);
@@ -124,6 +150,8 @@ export const useScheduleStore = defineStore(
         ElMessage.warning('获取课表失败')
       }
     }
+
+    
     // const convertToCourse = (cell: any, item: any): Course => {
     //   return {
     //     id: item.id.toString(),
@@ -144,6 +172,10 @@ export const useScheduleStore = defineStore(
 
     async function setCurrentSheet(sheetInfo: Sheet) {
       currentSheet.value = sheetInfo
+      // 添加这行，确保当前周数与sheet对应
+      if (sheetInfo.week) {
+        currentWeek.value = sheetInfo.week
+      }
       console.log('当前工作表:', currentSheet.value)
     }
 
@@ -344,6 +376,8 @@ export const useScheduleStore = defineStore(
       removeCourse,
       applyRemoteOperation,
       operationQueue,
+      fetchSheets,
+      weekToSheetMap,
       // convertToCourse,
       totalweek
     }

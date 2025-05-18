@@ -396,7 +396,7 @@
     },
     "/classes/{class_id}/sheet": {
       "post": {
-        "summary": "创建工作表",
+        "summary": "创建课程表",
         "deprecated": false,
         "description": "在指定班级中创建新工作表",
         "operationId": "createSheet",
