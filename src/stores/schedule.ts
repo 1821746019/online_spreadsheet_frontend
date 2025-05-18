@@ -11,8 +11,6 @@ import axios, {
   updateCellData,
 } from '../utils/api'
 import { useAuthStore } from './auth'
-import { Item } from 'ant-design-vue/es/menu'
-import { el } from 'element-plus/es/locale';
 
 export interface Class {
   id: number
@@ -78,7 +76,7 @@ export const useScheduleStore = defineStore(
     const currentClass = ref<Class | null>(null)
     const currentSheet = ref<Sheet | null>(null)
     const collaborators = ref([])
-    const auth = useAuthStore()
+    // const auth = useAuthStore()
 
     async function fetchTimetable(week: number) {
       currentWeek.value = week;

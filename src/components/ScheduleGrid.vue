@@ -437,37 +437,42 @@ const handleDelete = async() => {
     await getdraglist()
   }
 }
-async function getdraglist(){
-  try{
-  loading.value = true
-  console.log('ks',store.currentClass.id)
-  const response=await fetchDragItemlist(store.currentClass.id)
-  console.log(response)
-  const dragcourses = response.data.map(item => ({
-  id: item.id.toString(),       // 只提取id并转为字符串
-  course: item.content,      // 假设原字段是courseName
-  teacher: item.teacher,    // 假设原字段是teacherName
-  room: item.classroom,         // 直接使用classroom字段
-  week_type: item.week_type,   // 假设原字段是weekType
-  // 可以继续添加其他需要的字段...
-}))
-const differentCourses = dragcourses.filter(dragCourse =>
-  !store.timetable.some(timetableCourse =>
-    timetableCourse.id === dragCourse.id
-  )&&
-      !draftCourses.value.some(draftCourse =>
-        draftCourse.id === dragCourse.id
-      )
-);
-  console.log('diff',differentCourses )
-  if(differentCourses){
-  draftCourses.value.push(...differentCourses)
-  }}catch(e){
-    loading.value = false
-    throw(e)
-  }finally{
-    loading.value = false
+async function getdraglist() {
+  loading.value = true;
 
+  try {
+    const classId = store.currentClass.id;
+    if (!classId) return; // 添加空值检查
+
+    const response = await fetchDragItemlist(classId);
+    const rawCourses = response.data || []; // 添加空数组保护
+
+    // 数据转换
+    const dragCourses = rawCourses.map(item => ({
+      id: item.id.toString(),
+      course: item.content,
+      teacher: item.teacher,
+      room: item.classroom,
+      week_type: item.week_type,
+    }));
+
+    // 过滤出不在课表和草稿中的课程
+    const differentCourses = dragCourses.filter(dragCourse =>
+      !store.timetable.some(c => c.id === dragCourse.id) &&
+      !draftCourses.value.some(c => c.id === dragCourse.id)
+    );
+
+    if (differentCourses.length > 0) { // 明确检查数组长度
+      draftCourses.value = [...draftCourses.value, ...differentCourses]; // 使用不可变更新
+    }
+
+    return differentCourses; // 返回结果以便后续使用
+  } catch (error) {
+    console.error('获取拖动列表失败:', error);
+    ElMessage.error('获取课程列表失败'); // 添加用户反馈
+    throw error;
+  } finally {
+    loading.value = false;
   }
 }
 onMounted(async()=>{
@@ -476,7 +481,6 @@ onMounted(async()=>{
 </script>
 
 <style scoped>
-/* 保持原有样式不变 */
 .week-selector {
   margin-bottom: 20px;
   display: flex;
