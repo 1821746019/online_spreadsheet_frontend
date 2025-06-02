@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed,unref } from 'vue'
 import { emitOperation, type Operation } from '../utils/socket'
 import { ElMessage } from 'element-plus';
+import * as api from '../utils/api'
 import axios, {
   fetchCellData,
   fetchDragItem,
@@ -81,11 +82,14 @@ export const useScheduleStore = defineStore(
 
     async function fetchSheets(classId: number) {
       try {
-        const response = await axios.get(`/classes/${classId}/sheet`)
+        const response =await api.fetch_sheetlist(<number>classId, {
+      page: 1,
+      page_size: 20
+    })
         if (!response.data?.sheets) {
           throw new Error('API返回数据格式不正确，缺少sheets字段')
         }
-        
+
         console.log('API响应数据:', response.data)
         weekToSheetMap.value = response.data.sheets.reduce((map, sheet) => {
           if (!sheet.week || !sheet.id) {
@@ -95,7 +99,7 @@ export const useScheduleStore = defineStore(
           map[sheet.week] = sheet.id
           return map
         }, {})
-        
+
         console.log('初始化后的weekToSheetMap:', weekToSheetMap.value)
       } catch (error) {
         console.error('获取sheet列表失败:', error)
@@ -151,7 +155,7 @@ export const useScheduleStore = defineStore(
       }
     }
 
-    
+
     // const convertToCourse = (cell: any, item: any): Course => {
     //   return {
     //     id: item.id.toString(),

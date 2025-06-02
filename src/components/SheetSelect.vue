@@ -162,7 +162,7 @@ const fetchSheets = async () => {
     loading.value = true
     const response = await api.fetch_sheetlist(<number>class_id, {
       page: 1,
-      page_size: 10
+      page_size: 20
     })
     console.log('工作表响应',response);
     sheets.value = Array.isArray(response.data?.sheets)
@@ -185,7 +185,10 @@ const createSheet = async () => {
       alert('请填写完整且有效的表单数据')
       return
     }
-
+    showCreateDialog.value = false
+    let i=1
+    while(i<=18){
+    newSheet.value.name= `第${i}周课程表`
     // 调用API创建工作表
     const response = await api.create_sheet(<number>class_id, newSheet.value)
     scheduleStore.totalweek=newSheet.value.week
@@ -193,9 +196,12 @@ const createSheet = async () => {
     // 添加到列表
     sheets.value.push(response.data)
     // 重置表单并关闭对话框
-    newSheet.value = { name: '', week: 1, row: 1, col: 1 }
-    showCreateDialog.value = false
+    // newSheet.value = { name: '', week: 1, row: 1, col: 1 }
+    // showCreateDialog.value = false
     ElMessage.success('成功创建工作表')
+    i=i+1
+    newSheet.value.week =i
+  }
   } catch (error) {
     console.error('创建工作表失败:', error)
     showCreateDialog.value = false
