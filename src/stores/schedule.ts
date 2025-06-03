@@ -208,7 +208,7 @@ export const useScheduleStore = defineStore(
 
     // 4. 异步检查冲突（不阻塞主流程）
     setTimeout(() => checkConflicts(finalCourse), 100);
-
+    console.log('更新后的课程:', finalCourse);
     // 5. 并行API调用
     const [updateResult, moveResult] = await Promise.all([
       updateDragItem(finalCourse.id, {

@@ -41,7 +41,7 @@
 
           <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
             :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
-            @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
+            @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict}, {'ismerge':ismerge(course) }" @dblclick="handleDblClick(course)">
             <div class="course-content">
               <span class="course-title">{{ course.course }}</span>
               <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
@@ -126,7 +126,7 @@ const coursePool = ref(null)
 async function handleWeekChange(week) {
   try {
     store.currentWeek = week
-    await store.fetchTimetable(week)
+    // await store.fetchTimetable(week)
 
   } catch (error) {
     console.error('Failed to change week:', error)
@@ -158,13 +158,41 @@ const dayMap = {
 function getCoursesByDay(day) {
   const dayIndex = days.indexOf(day) + 1;
   return store.timetable.filter(c => {
+    // 基础周类型匹配逻辑
     const matchesWeek = c.week_type === 'all' ||
                       (c.week_type === 'single' && store.currentWeek % 2 === 1) ||
                       (c.week_type === 'double' && store.currentWeek % 2 === 0);
     return c.col_index === dayIndex && matchesWeek;
+  }).map(c => {
+    // 仅处理week_type为all且包含*的课程
+    if (c.week_type === 'all') {
+      const hasAsterisk = c.teacher?.includes('*') ||
+                          c.course?.includes('*') ||
+                          c.room?.includes('*');
+
+      if (hasAsterisk) {
+        // 创建新对象避免修改原数据
+        const newCourse = { ...c };
+        const isSingleWeek = store.currentWeek % 2 === 1;
+
+        // 处理包含*的字段
+        const processField = (field) => {
+          if (!field || !field.includes('*')) return field;
+          const [left, right] = field.split('*');
+          return isSingleWeek
+            ? left.trim()
+            : (right || '').trim(); // 双周时右侧为空则返回空字符串
+        };
+
+        newCourse.teacher = processField(c.teacher);
+        newCourse.course = processField(c.course);
+        newCourse.room = processField(c.room);
+        return newCourse;
+      }
+    }
+    return c;
   });
 }
-
 const originalPositions = new Map()
 
 function handleDragStart(e, course) {
@@ -257,6 +285,51 @@ async function handleDrop(e, day) {
     ElMessage.warning('目标位置有冲突，取消放置');
     return;
   }
+const ismerge =(
+    (originalCourse.teacher && originalCourse.teacher.includes('*')) ||
+    (originalCourse.course && originalCourse.course.includes('*')) ||
+    (originalCourse.room && originalCourse.room.includes('*'))
+  );
+  console.log('ismerge',ismerge)
+//单双周同一时间
+if(ismerge){
+    ElMessage.warning('正在拖动单双周合并课程');
+  }
+
+  const SDsametime = store.timetable.some(course => {
+   if (course.id === courseId) return false;
+    const courseDay = days[course.col_index - 1];
+    const courseTime = realtime[course.row_index - 1];
+    const courseWeekType = course.week_type;
+
+   if( courseDay === targetDay &&
+           courseTime === targetTime &&
+           ((courseWeekType === 'single' && targetWeekType === 'double' )||(courseWeekType === 'double' && targetWeekType === 'single'))){
+            if(ismerge){
+              ElMessage.warning('合并的课程不能再合并，请先解除合并');
+              return ;
+            }
+            if(originalCourse.week_type === 'single' && courseWeekType === 'double'){
+              originalCourse.room=`${originalCourse.room}*${course.room}`;
+          originalCourse.course=`${originalCourse.course}*${course.course}`;
+          originalCourse.teacher=`${originalCourse.teacher}*${course.teacher}`;
+          originalCourse.week_type='all';
+          console.log('originalCourse.teacher',originalCourse.teacher)
+            }else{
+          originalCourse.room=`${course.room}*${originalCourse.room}`;
+          originalCourse.course=`${course.course}*${originalCourse.course}`;
+          originalCourse.teacher=`${course.teacher}*${originalCourse.teacher}`;
+          originalCourse.week_type='all';
+            }
+            store.removeCourse(course.id);
+           ElMessage.success('单双周同一时间已合并');
+           }
+  });
+if (SDsametime) {
+    ElMessage.warning('单双周同一时间不能放置');
+    return;
+  }
+
 
   // 准备更新数据
   const updatedCourse = {
@@ -296,7 +369,13 @@ async function handleDrop(e, day) {
     ElMessage.error('操作失败，请重试');
   }
 }
-
+function ismerge(course) {
+  return (
+    (course.teacher && course.teacher.includes('*')) ||
+    (course.course && course.course.includes('*')) ||
+    (course.room && course.room.includes('*'))
+  );
+}
 function getCourseStyle(course) {
   return {
     top: `${(course.row_index - 1) * 80}px`,
@@ -604,6 +683,12 @@ onMounted(async()=>{
   z-index: 1;
   animation: pulse 1.5s infinite;
 }
+.course-block.ismerge {
+  background: linear-gradient(135deg, #fff5f5 0%, #d7fef7 100%);
+  border-color: #8183fc;
+  z-index: 1;
+}
+
 
 .course-content {
   display: flex;

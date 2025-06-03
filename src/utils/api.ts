@@ -161,6 +161,7 @@ export interface Cell {
   sheet_id?: number;
   update_time?: Date;
   week_type?:string;
+  teacher?: string;
   [property: string]: any;
 }
 export const fetchCellData = (classId: number, sheetId: number) => {
