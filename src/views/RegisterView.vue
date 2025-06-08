@@ -101,7 +101,10 @@ const handleRegister = async () => {
     error.value = '两次输入的密码不一致';
     return;
   }
-
+  if( password.value.length < 8 ) {
+    error.value = '密码长度必须在8个字符以上';
+    return;
+  }
   try {
     loading.value = true;
     error.value = '';

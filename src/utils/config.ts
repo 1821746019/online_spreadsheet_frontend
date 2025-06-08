@@ -1,1 +1,1 @@
-export const PREFIX_URL = 'https://project.20041314.free.hr/api/v1';//服务器
+export const PREFIX_URL = 'http://47.84.188.76/api/v1';//服务器

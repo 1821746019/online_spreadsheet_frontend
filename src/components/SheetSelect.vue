@@ -36,7 +36,7 @@
             />
           </div>
 
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label for="row">行数 <span class="required">*</span></label>
             <input
               id="row"
@@ -60,7 +60,7 @@
               placeholder="输入列数"
               value="7"
             />
-          </div>
+          </div> -->
 
 
           <div class="form-actions">
@@ -144,8 +144,8 @@ const showCreateDialog = ref(false)
 const newSheet = ref({
   name: '',
   week: 1,
-  row: 1,
-  col: 1
+  row: 8,
+  col: 7
 })
 
 // 组件挂载时获取工作表列表
@@ -198,7 +198,7 @@ const createSheet = async () => {
     // 重置表单并关闭对话框
     // newSheet.value = { name: '', week: 1, row: 1, col: 1 }
     // showCreateDialog.value = false
-    ElMessage.success('成功创建工作表')
+    ElMessage.success(`成功创建工作表'第${newSheet.value.week}周课程表`)
     i=i+1
     newSheet.value.week =i
   }

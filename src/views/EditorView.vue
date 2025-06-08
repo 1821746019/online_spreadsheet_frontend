@@ -2,9 +2,9 @@
   <div class="editor-view">
     <div class="page-header">
     <h2 class="modern-title">
-      <span class="class-name">{{ selectedClass.name }}</span>
-      <span class="separator">的</span>
-      <span class="sheet-name">{{ store.currentSheet.name }}</span>
+      <span class="class-name">{{ selectedClass.name }}的课表</span>
+      <!-- <span class="separator">的</span> -->
+      <!-- <span class="sheet-name">{{ store.currentSheet.name }}</span> -->
     </h2>
   </div>
 

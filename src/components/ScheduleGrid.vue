@@ -63,9 +63,25 @@
           <el-input v-model="editingCourse.course" type="text" class="modern-input"></el-input>
         </div>
         <div class="form-group">
-          <label>授课教师</label>
-          <el-input v-model="editingCourse.teacher" type="text" class="modern-input"></el-input>
-        </div>
+      <label>授课教师</label>
+      <div class="form-group">
+    <el-select
+      v-model="editingCourse.teacher"
+      filterable
+      clearable
+      placeholder="请选择授课教师"
+      class="modern-select"
+      :loading="loadingTeachers"
+    >
+      <el-option
+        v-for="teacher in teacherList"
+        :key="teacher"
+        :label="teacher"
+        :value="teacher"
+      />
+    </el-select>
+  </div>
+    </div>
         <div class="form-group">
           <label>教室</label>
           <el-input v-model="editingCourse.room" type="text" class="modern-input"></el-input>
@@ -115,7 +131,7 @@
 <script setup>
 import {  onMounted, ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
-import { createDragItem,deleteDragItem,fetchDragItemlist,updateCellData, updateDragItem } from '../utils/api'
+import { createDragItem,deleteDragItem,fetchDragItemlist,updateCellData, updateDragItem,getusers,getWeekcourse } from '../utils/api'
 import { ElMessage } from 'element-plus';
 const store = useScheduleStore()
 const loading = ref(false)
@@ -123,26 +139,30 @@ const emit = defineEmits(['courseMoved'])
 // 新增状态
 const draftCourses = ref([])
 const coursePool = ref(null)
+let isFetching = false
 async function handleWeekChange(week) {
-  try {
-    // 确保weekToSheetMap已初始化
-    if (!store.weekToSheetMap || Object.keys(store.weekToSheetMap).length === 0) {
-      await store.fetchSheets(store.currentClass?.id)
+  setTimeout(async () => {
+    try {
+      // 确保weekToSheetMap已初始化
+      if (!store.weekToSheetMap || Object.keys(store.weekToSheetMap).length === 0) {
+        await store.fetchSheets(store.currentClass?.id)
+      }
+
+      store.currentWeek = week
+      const sheetId = store.weekToSheetMap[week]
+
+      if (sheetId === undefined) {
+        throw new Error(`周数${week}没有对应的课表数据`)
+      }
+
+      await store.setCurrentSheet({ id: sheetId, week })
+      await store.fetchTimetable(week)
+      await getdraglist()
+    } catch (error) {
+      console.error('切换周数失败:', error)
+      ElMessage.error(`切换周数失败: ${error.message}`)
     }
-    
-    store.currentWeek = week
-    const sheetId = store.weekToSheetMap[week]
-    
-    if (sheetId === undefined) {
-      throw new Error(`周数${week}没有对应的课表数据`)
-    }
-    
-    await store.setCurrentSheet({ id: sheetId, week })
-    await store.fetchTimetable(week)
-  } catch (error) {
-    console.error('切换周数失败:', error)
-    ElMessage.error(`切换周数失败: ${error.message}`)
-  }
+  }, 0)
 }
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -282,11 +302,11 @@ async function handleDrop(e, day) {
 
     if (isFromDraft) {
       // 从草稿区移动到正式课程
-      await store.updateCourse(updatedCourse);
+      await store.updateCourse(updatedCourse,false);
       draftCourses.value = draftCourses.value.filter(c => c.id !== courseId);
     } else {
       // 正式课程内部移动
-      const updateOperations = [store.updateCourse(updatedCourse)];
+      const updateOperations = [store.updateCourse(updatedCourse,false)];
 
       if (!originalCourse.hasConflict) {
         updateOperations.push(
@@ -371,7 +391,7 @@ function showCreateDialog() {
   }
   showEditDialog.value = true
 }
-async function delete_drag_item(params) {
+async function delete_drag_item() {
   if (editingCourse.value && confirm('确认删除该拖动课程？')) {
     try{
     await deleteDragItem(editingCourse.value.id)
@@ -406,7 +426,7 @@ async function saveCourse() {
       ...store.timetable.map(c => c.id),
       ...draftCourses.value.map(c => c.id)
     ]);
-
+    console.log('existingIds',existingIds)
     if (!existingIds.has(courseToSave.id)) {
       // 合并接口参数对象
       const response = await createDragItem({
@@ -428,7 +448,21 @@ async function saveCourse() {
       ElMessage.success('成功创建拖动元素')
     } else {
       // 使用细粒度状态更新
+      // const courseExists = store.timetable.find(c => c.id === courseToSave.id);
+      // if (courseExists) {
+      //   // 更新已有课程
+      const originalCourse = store.timetable.find(course => course.id === courseToSave.id);
+
+  if (originalCourse) {
+    // 检查 col_index 或 row_index 是否有一个相同
+    if (originalCourse.col_index !== courseToSave.col_index ||
+        originalCourse.row_index !== courseToSave.row_index) {
       store.updateCourse(courseToSave);
+
+        }else{
+          store.updateCourse(courseToSave)
+    }
+  }
     }
 
     // 延迟界面更新到异步操作完成后
@@ -464,7 +498,7 @@ async function getdraglist() {
       id: item.id.toString(),
       course: item.content,
       teacher: item.teacher,
-      room: item.classroom,
+      room: item.class_room,
       week_type: item.week_type,
     }));
 
@@ -487,11 +521,34 @@ async function getdraglist() {
     loading.value = false;
   }
 }
+const teacherList = ref([]);
+const loadingTeachers = ref(false);
+
+// 从API获取教师列表
+async function fetchTeachers() {
+  loadingTeachers.value = true;
+  try {
+    const response = await getusers();
+    console.log('教师列表:', response.data);
+    teacherList.value = response.data; // 直接使用API返回的数组
+  } catch (error) {
+    console.error('获取教师列表失败:', error);
+    // 可以设置默认值或显示错误信息
+    teacherList.value = [];
+  } finally {
+    loadingTeachers.value = false;
+  }
+}
 onMounted(async()=>{
+  // console.log(getusers(),'users')
   if (store.currentClass?.id) {
     await store.fetchSheets(store.currentClass.id)
   }
+  console.log(getWeekcourse({week:3}),'getWeekcourse')
+  await store.fetchTimetable(store.currentWeek)
+  await fetchTeachers()
   await getdraglist()
+
 })
 </script>
 
@@ -744,13 +801,13 @@ onMounted(async()=>{
 }
 
 .modern-input {
-  width: 100%;
+  /* width: 100%;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 12px 16px;
   transition: all 0.3s ease;
   font-size: 0.95rem;
-  background-color: #f8fafc;
+  background-color: #f8fafc; */
 }
 
 .modern-input:focus {

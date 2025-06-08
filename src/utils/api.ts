@@ -173,6 +173,10 @@ export interface putcell{
 export const updateCellData=(classId: number, sheetId: number,putcell:putcell) => {
   return instance.put(`/classes/${classId}/sheet/${sheetId}/cell`,putcell);
 };
-
-
+export const getusers = () => {
+  return instance.get('/users');
+};
+export const getWeekcourse = (week: number) => {
+  return instance.post(`/sheet/courses/view`,week )
+};
 export default instance;
