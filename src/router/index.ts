@@ -7,10 +7,12 @@ const router = createRouter({
     {
       path: '/home',
       name: 'home',
+      redirect: '/home/class',
+      // 重定向到 class 选择页面
       component: () => import('../views/Home.vue'),
       children: [
         {
-          path: '',
+          path: '/home/class',
           name: 'class',
           component: () => import('../components/ClassSelect.vue'),
         },
@@ -33,6 +35,11 @@ const router = createRouter({
           path: '/home/form',
           name: 'form',
           component: () => import('../components/CommonForm.vue'), // 表单组件
+        },
+        {
+          path: '/home/teacher',
+          name: 'teacher',
+          component: () => import('../views/teacherView.vue'), // 老师组件
         },
         {
           path: '/home/course',

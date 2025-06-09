@@ -133,13 +133,13 @@ import {  onMounted, ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 import { createDragItem,deleteDragItem,fetchDragItemlist,updateCellData, updateDragItem,getusers,getWeekcourse } from '../utils/api'
 import { ElMessage } from 'element-plus';
+import { useAuthStore } from '../stores/auth';
 const store = useScheduleStore()
 const loading = ref(false)
 const emit = defineEmits(['courseMoved'])
 // 新增状态
 const draftCourses = ref([])
 const coursePool = ref(null)
-let isFetching = false
 async function handleWeekChange(week) {
   setTimeout(async () => {
     try {
@@ -198,8 +198,13 @@ function getCoursesByDay(day) {
 }
 
 const originalPositions = new Map()
-
+const auth =useAuthStore()
 function handleDragStart(e, course) {
+  if (course.teacher !== auth.user.username) {
+    e.preventDefault(); // 直接禁止拖动
+    ElMessage.warning('您无权移动其他老师的课程');
+    return;
+  }
   e.dataTransfer.setData('text/plain', course.id)
   e.dataTransfer.effectAllowed = 'move'
   e.target.classList.add('dragging')
@@ -217,28 +222,34 @@ function handleDragOver(e) {
 }
 
 function handleDragEnd(e) {
-  const courseId = e.dataTransfer.getData('text/plain')
-  const originalPosition = originalPositions.get(courseId)
+  const courseId = e.dataTransfer.getData('text/plain');
+  const originalPosition = originalPositions.get(courseId);
 
   if (originalPosition) {
-    // 如果没有成功放置，回退到原位置
+    // 如果拖放未成功（未触发 handleDrop 或 handleDrop 失败）
     if (e.dataTransfer.dropEffect !== 'move') {
-      const { row_index, col_index, element } = originalPosition
-      element.style.transition = 'all 0.3s ease'
-      element.style.top = `${(row_index - 1) * 80}px`
-      element.style.left = '4px'
-      element.style.right = '4px'
-
-      // 过渡结束后移除样式
-      setTimeout(() => {
-        element.style.transition = ''
-      }, 300)
+      revertToOriginalPosition(originalPosition);
     }
-
-    originalPositions.delete(courseId)
+    originalPositions.delete(courseId); // 确保清理
   }
 
-  e.target.classList.remove('dragging')
+  e.target.classList.remove('dragging');
+}
+
+/**
+ * 回退到原始位置（动画效果）
+ */
+function revertToOriginalPosition(originalPosition) {
+  const { row_index, col_index, element } = originalPosition;
+
+  element.style.transition = 'all 0.3s ease';
+  element.style.top = `${(row_index - 1) * 80}px`;
+  element.style.left = '4px';
+  element.style.right = '4px';
+
+  setTimeout(() => {
+    element.style.transition = '';
+  }, 300);
 }
 
 async function handleDrop(e, day) {
@@ -297,38 +308,62 @@ async function handleDrop(e, day) {
     row_index: slotIndex
   };
 
+  // 获取原始位置信息
+  const originalPosition = originalPositions.get(courseId);
+  if (!originalPosition) return;
+
   try {
     const isFromDraft = draftCourses.value.some(c => c.id === courseId);
 
     if (isFromDraft) {
       // 从草稿区移动到正式课程
-      await store.updateCourse(updatedCourse,false);
+      await store.updateCourse(updatedCourse, false);
       draftCourses.value = draftCourses.value.filter(c => c.id !== courseId);
     } else {
-      // 正式课程内部移动
-      const updateOperations = [store.updateCourse(updatedCourse,false)];
+     const updateOperations = [];
 
-      if (!originalCourse.hasConflict) {
-        updateOperations.push(
-          updateCellData(
-            store.currentClass.id || 0,
-            store.currentSheet.id || 0,
-            {
-              Row: originalCourse.row_index,
-              Col: originalCourse.col_index
-            }
-          )
-        );
+// 总是添加第一个操作
+const firstOp = store.updateCourse(updatedCourse, false);
+updateOperations.push(firstOp);
+
+// 只有第一个操作成功时才添加第二个
+if (!originalCourse.hasConflict) {
+  const secondOp = firstOp.then(() =>
+    updateCellData(
+      store.currentClass.id || 0,
+      store.currentSheet.id || 0,
+      {
+        Row: originalCourse.row_index,
+        Col: originalCourse.col_index
       }
+    )
+  );
+  updateOperations.push(secondOp);
+}
 
-      await Promise.all(updateOperations);
+try {
+  await Promise.all(updateOperations);
+} catch (error) {
+  console.error('更新操作失败:', error);
+  throw error;
+}
     }
   } catch (error) {
     console.error('拖放操作失败:', error);
-    ElMessage.error('操作失败，请重试');
+    ElMessage.error('操作失败，已回退到原位置');
+    console.error('回退到原位置:', courseId);
+    store.timetable = store.timetable.map(course => {
+      if (course.id === courseId) {
+        return {
+          ...course,
+          col_index: originalPosition.col_index,
+          row_index: originalPosition.row_index
+        }
+      }
+      return course;
+    });
   }
 }
-
 function getCourseStyle(course) {
   return {
     top: `${(course.row_index - 1) * 80}px`,
@@ -362,6 +397,7 @@ function showupdate(course){
   handleDblClick(course)
 }
 async function save_drag(){
+  // store.
   await updateDragItem(editingCourse.value.id, {
             class_room: editingCourse.value.room,
             content: editingCourse.value.course,
@@ -507,11 +543,13 @@ async function getdraglist() {
       !store.timetable.some(c => c.id === dragCourse.id) &&
       !draftCourses.value.some(c => c.id === dragCourse.id)
     );
-
+    console.log('不同的课程:', differentCourses);
     if (differentCourses.length > 0) { // 明确检查数组长度
       draftCourses.value = [...draftCourses.value, ...differentCourses]; // 使用不可变更新
     }
-
+draftCourses.value = draftCourses.value.filter(draftCourse =>
+  !store.timetable.some(timetableCourse => timetableCourse.id === draftCourse.id)
+);
     return differentCourses; // 返回结果以便后续使用
   } catch (error) {
     console.error('获取拖动列表失败:', error);

@@ -248,6 +248,7 @@ export const useScheduleStore = defineStore(
     // 4. 异步检查冲突（不阻塞主流程）
     setTimeout(() => checkConflicts(finalCourse), 100);
     console.log('更新后的课程:', finalCourse);
+
     // 5. 并行API调用
     if (ifposition) {
     const [updateResult, moveResult] = await Promise.all([
@@ -270,6 +271,17 @@ export const useScheduleStore = defineStore(
     });
     console.log('移动结果:');
   }
+  // //周类型修改后滞留问题
+  //  if((finalCourse.week_type === 'single' && (currentWeek.value % 2 === 0)) ||
+  //        (finalCourse.week_type === 'double' && currentWeek.value % 2 === 1)){
+  //         updateCellData(classId, sheetId, {
+  //           Row: finalCourse.row_index,
+  //           Col: finalCourse.col_index,
+  //         });
+  //         timetable.value = timetable.value.filter(c => c.id !== finalCourse.id);
+  //         courseMap.value.delete(finalCourse.id.toString());
+  //         ElMessage.warning('当前周不符合课程类型，已从课表中移除');
+  //        }
     // 6. 显示成功消息
     ElMessage.success('目标拖动成功');
 

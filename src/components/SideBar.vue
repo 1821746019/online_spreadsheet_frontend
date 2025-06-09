@@ -14,6 +14,7 @@
         :to="item.path"
         class="menu-item"
         active-class="active"
+        exact
       >
         <span class="menu-icon">{{ item.icon }}</span>
         <span class="menu-title">{{ item.title }}</span>
@@ -39,11 +40,14 @@ defineExpose({
 
 // 菜单配置项
 const menuItems = [
-  { icon: "🏠", title: "首页", path: "/home" },
-  // { icon: "🏠", title: "课表编辑", path: "/home/editor" },
+  // { icon: "🏠", title: "首页", path: "/home" },
+  { icon: "🏠", title: "首页", path: "/home/class" },
+
   { icon: "📊", title: "一般表格", path: "/home/form" },
-  // { icon: "📂", title: "读取CSV表格", path: "/home/read" },
+  { icon: "📅", title: "我的课表", path: "/home/teacher" },
+  // { icon: "", title: "读取CSV表格", path: "/home/read" },
   // { icon: "📊", title: "课程表格数据", path: "/home/course" },
+  // { icon: "🏠", title: "课表编辑", path: "/home/editor" },
 ];
 </script>
 

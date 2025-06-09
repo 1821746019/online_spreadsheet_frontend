@@ -5,7 +5,7 @@
       <p class="subtitle">现代化、高效的课程安排解决方案</p>
       <div class="cta-buttons">
         <button @click="handleLogin" class="btn primary">登录</button>
-        <router-link to="/register" class="btn secondary">注册</router-link>
+        <button @click="handleRegister" class="btn secondary">注册</button>
       </div>
     </div>
 
@@ -40,7 +40,14 @@ const handleLogin = () => {
     router.push('/login')
   }
 }
-
+const handleRegister = () => {
+  if (authStore.isLoggedIn) {
+    ElMessage.info('您已登录，无需注册')
+    router.push('/home')
+  } else {
+    router.push('/register')
+  }
+}
 const features = ref([
   {
     icon: IconTooling,
