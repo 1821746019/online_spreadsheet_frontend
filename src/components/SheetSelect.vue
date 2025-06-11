@@ -13,7 +13,7 @@
       <div class="modal-content">
         <h2>创建课程表</h2>
         <form @submit.prevent="createSheet">
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label for="name">课程表名称 <span class="required">*</span></label>
             <input
               id="name"
@@ -34,7 +34,7 @@
               required
               placeholder="输入周数"
             />
-          </div>
+          </div> -->
 
           <!-- <div class="form-group">
             <label for="row">行数 <span class="required">*</span></label>
@@ -72,7 +72,7 @@
     </div>
 
     <!-- 工作表卡片列表 -->
-    <div v-if="loading" class="loading">加载中...</div>
+    <div v-if="loading" class="loading">加载中...请稍后</div>
 
     <div v-else class="sheet-grid">
       <div
@@ -180,13 +180,14 @@ const fetchSheets = async () => {
 const createSheet = async () => {
   try {
     // 验证数据
-    if (!newSheet.value.name || newSheet.value.week < 1 ||
-        newSheet.value.row < 1 || newSheet.value.col < 1) {
-      alert('请填写完整且有效的表单数据')
-      return
-    }
+    // if (!newSheet.value.name || newSheet.value.week < 1 ||
+    //     newSheet.value.row < 1 || newSheet.value.col < 1) {
+    //   alert('请填写完整且有效的表单数据')
+    //   return
+    // }
     showCreateDialog.value = false
     let i=1
+    loading.value = true
     while(i<=18){
     newSheet.value.name= `第${i}周课程表`
     // 调用API创建工作表
@@ -198,10 +199,13 @@ const createSheet = async () => {
     // 重置表单并关闭对话框
     // newSheet.value = { name: '', week: 1, row: 1, col: 1 }
     // showCreateDialog.value = false
-    ElMessage.success(`成功创建工作表'第${newSheet.value.week}周课程表`)
+    // ElMessage.success(`成功创建工作表'第${newSheet.value.week}周课程表`)
     i=i+1
     newSheet.value.week =i
   }
+  loading.value = false
+    ElMessage.success(`成功创建1~18周的课程表`)
+
   } catch (error) {
     console.error('创建工作表失败:', error)
     showCreateDialog.value = false
@@ -228,11 +232,6 @@ const goToSheet = (sheet:Sheet) => {
   router.push(`/class/${<number>class_id}/sheet/${sheet.id}`)
 }
 
-// 格式化日期显示
-const formatDate = (date?: Date) => {
-  if (!date) return '未知'
-  return new Date(date).toLocaleString()
-}
 
 </script>
 
@@ -320,29 +319,39 @@ const formatDate = (date?: Date) => {
 
 .delete-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 24px;
-  height: 24px;
-  background-color: #f56565;
-  color: white;
-  border: none;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  background: #ff6b6b;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(255, 107, 107, 0.3);
 }
 
-.delete-btn:hover {
-  background-color: #e53e3e;
-  transform: scale(1.1);
+.sheet-card:hover .delete-btn {
+  opacity: 1;
+  transform: scale(0.8);
 }
 
 .delete-icon {
-  font-size: 16px;
+  color: white;
+  font-size: 26px;
+  font-weight: 300;
   line-height: 1;
+  margin-top: -2px;
+}
+
+.delete-btn:hover {
+  background: #fa5252;
+  transform: scale(1.1) !important;
 }
 
 .sheet-meta {

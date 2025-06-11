@@ -7,7 +7,7 @@
         <div v-for="course in draftCourses" :key="course.id"
              class="course-block draft" draggable="true"
              @dragstart="handleDragStart($event, course)"
-             @dragend="handleDragEnd"@dblclick="showupdate(course)">
+             @dragend="handleDragEnd"@dblclick="showupdate(course)" v-if="!loading">
           <div class="course-content">
             <span class="course-title">{{ course.course }}</span>
             <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
@@ -30,8 +30,9 @@
       </div>
       <div class="time-grid">
         <div class="time-column">
-          <div v-for="time in realtime" :key="time" class="time-slot">
+          <div v-for="(time,index) in realtime" :key="time" class="time-slot">
             {{ time }}
+            <span class="note">{{ notes[index] }}</span> <!-- 通过index匹配注释 -->
           </div>
         </div>
 
@@ -41,12 +42,12 @@
 
           <div v-for="course in getCoursesByDay(day)" :key="course.id" class="course-block"
             :style="getCourseStyle(course)" draggable="true" @dragstart="handleDragStart($event, course)"
-            @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)">
+            @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)"v-if="!loading">
             <div class="course-content">
               <span class="course-title">{{ course.course }}</span>
               <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
-              <div v-if="course.lastUpdatedBy" class="user-indicator"
-                :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div>
+              <!-- <div v-if="course.lastUpdatedBy" class="user-indicator"
+                :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div> -->
             </div>
           </div>
         </div>
@@ -98,7 +99,7 @@
             <el-option v-for="(time, index) in realtime" :key="time" :label="time" :value="index + 1" />
           </el-select>
         </div>
-        <div class="form-group">
+        <div class="form-group"v-if="savedrag">
           <label>周次类型</label>
           <el-select v-model="editingCourse.week_type" class="modern-input">
             <el-option label="单周" value="single" />
@@ -117,10 +118,10 @@
             <span>保存</span>
           </button>
           <button @click="save_drag" class="save-btn"v-if="savedrag">
-            <span>保存拖动元素</span>
+            <span>保存课程</span>
           </button>
           <button @click="delete_drag_item"class="delete-btn" v-if="drgamitemlog">
-            <span>删除拖动元素</span>
+            <span>删除课程</span>
           </button>
         </div>
       </div>
@@ -131,7 +132,7 @@
 <script setup>
 import {  onMounted, ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
-import { createDragItem,deleteDragItem,fetchDragItemlist,updateCellData, updateDragItem,getusers,getWeekcourse } from '../utils/api'
+import { fetchCellData,createDragItem,deleteDragItem,fetchDragItemlist,updateCellData, updateDragItem,getusers,getWeekcourse } from '../utils/api'
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '../stores/auth';
 const store = useScheduleStore()
@@ -176,7 +177,7 @@ const realtime = [
   '19:00-20:20', // 第11-12节
   '20:30-21:50'  // 第13-14节
 ]
-
+const notes = ['第1-2节', '第3-4节', '第5节','第6-7节','第8-9节','第10节','第11-12节','第13-14节'] // 注释数组
 const dayMap = {
   Monday: '周一',
   Tuesday: '周二',
@@ -223,34 +224,10 @@ function handleDragOver(e) {
 
 function handleDragEnd(e) {
   const courseId = e.dataTransfer.getData('text/plain');
-  const originalPosition = originalPositions.get(courseId);
-
-  if (originalPosition) {
-    // 如果拖放未成功（未触发 handleDrop 或 handleDrop 失败）
-    if (e.dataTransfer.dropEffect !== 'move') {
-      revertToOriginalPosition(originalPosition);
-    }
-    originalPositions.delete(courseId); // 确保清理
-  }
-
   e.target.classList.remove('dragging');
 }
 
-/**
- * 回退到原始位置（动画效果）
- */
-function revertToOriginalPosition(originalPosition) {
-  const { row_index, col_index, element } = originalPosition;
 
-  element.style.transition = 'all 0.3s ease';
-  element.style.top = `${(row_index - 1) * 80}px`;
-  element.style.left = '4px';
-  element.style.right = '4px';
-
-  setTimeout(() => {
-    element.style.transition = '';
-  }, 300);
-}
 
 async function handleDrop(e, day) {
   e.preventDefault();
@@ -365,15 +342,18 @@ try {
   }
 }
 function getCourseStyle(course) {
+  if(course.teacher !== auth.user.username){
+    return {
+      top: `${(course.row_index - 1) * 80}px`,
+      height: '60px', // 默认高度
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%)', // 禁止拖动时的背景色
+      border: '1px dashed #e9ecef'
+    }
+  }
   return {
     top: `${(course.row_index - 1) * 80}px`,
     height: '60px' // 默认高度
   }
-}
-
-function getUserColor(userId) {
-  const user = store.collaborators.find(u => u.id === userId)
-  return user ? user.color : '#ccc'
 }
 
 // 编辑相关状态
@@ -547,9 +527,36 @@ async function getdraglist() {
     if (differentCourses.length > 0) { // 明确检查数组长度
       draftCourses.value = [...draftCourses.value, ...differentCourses]; // 使用不可变更新
     }
+// 清理草稿课程列表，移除已存在于课表中的课程
 draftCourses.value = draftCourses.value.filter(draftCourse =>
   !store.timetable.some(timetableCourse => timetableCourse.id === draftCourse.id)
 );
+//过滤掉因为week_type不同导致在其他周的课程
+        const sheetId = store.weekToSheetMap[store.currentWeek%2===0?1:2] || store.currentSheet.value?.id;
+    const other_response = await fetchCellData(store.currentClass, sheetId);
+        // console.log('cell', response.data);
+
+        const cellData = other_response.data.filter((item) => item.item_id !== null);
+        // timetable.value = [];
+        // courseMap.value.clear();
+        const newCourses = cellData.map(cell => ({
+          classId: store.currentClass,
+          col_index: cell.col_index,
+          course: cell.content,
+          hasConflict: false,
+          id: cell.item_id.toString(),
+          room: cell.class_room,
+          row_index: cell.row_index,
+          teacher: cell.teacher,
+          week_type: cell.week_type || 'all',
+        }));
+        //过滤出与newCourses中不同的课程
+        draftCourses.value = draftCourses.value.filter(draftCourse =>
+          !newCourses.some(newCourse => newCourse.id === draftCourse.id)
+        );
+//过滤得到自己的课程
+    draftCourses.value = draftCourses.value.filter(course => course.teacher === auth.user.username);
+
     return differentCourses; // 返回结果以便后续使用
   } catch (error) {
     console.error('获取拖动列表失败:', error);
@@ -582,8 +589,7 @@ onMounted(async()=>{
   if (store.currentClass?.id) {
     await store.fetchSheets(store.currentClass.id)
   }
-  console.log(getWeekcourse({week:3}),'getWeekcourse')
-  await store.fetchTimetable(store.currentWeek)
+  // console.log(getWeekcourse({week:3}),'getWeekcourse')
   await fetchTeachers()
   await getdraglist()
 
@@ -652,12 +658,18 @@ onMounted(async()=>{
   font-size: 0.8em;
   border-right: 1px solid #e2e8f0;
 }
-
+.note {
+  white-space: normal; /* 允许注释换行 */
+  word-break: break-word; /* 强制长单词/中文换行 */
+  display: block; /* 让注释独占一行 */
+  margin-top: 4px; /* 与时间增加间距 */
+}
 .time-slot {
   height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   font-size: 0.85em;
   color: #4a5568;
   border-bottom: 1px solid #e2e8f0;
@@ -775,7 +787,7 @@ onMounted(async()=>{
   align-items: flex-start;
   padding-top: 40px;
   padding-bottom: 40px;
-  overflow-y: auto;
+  overflow-y: hidden;
   z-index: 1000;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.3s ease;

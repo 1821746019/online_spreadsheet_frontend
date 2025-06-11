@@ -19,6 +19,7 @@
         <template #default="{ row, column }">
           <div v-if="row[column.property]" class="course-cell">
             <div class="course-content">{{ row[column.property].content }}</div>
+            <div class="course-content">{{ row[column.property].className }}</div>
             <div class="course-info">
               <span>{{ row[column.property].teacher }}</span>
               <span>{{ row[column.property].classroom }}</span>
@@ -103,7 +104,8 @@ export default {
             newTableData[rowIndex][day.value] = {
               content: course.content,
               teacher: course.teacher,
-              classroom: course.classroom
+              classroom: course.classroom,
+              className: course.className
             }
           }
         })

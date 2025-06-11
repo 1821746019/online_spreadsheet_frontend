@@ -1,17 +1,14 @@
 import { defineStore } from 'pinia'
-import { ref, computed,unref } from 'vue'
-import { emitOperation, type Operation } from '../utils/socket'
+import { ref, computed } from 'vue'
+import { type Operation } from '../utils/socket'
 import { ElMessage } from 'element-plus';
 import * as api from '../utils/api'
-import axios, {
+import  {
   fetchCellData,
-  fetchDragItem,
-  deleteDragItem,
   updateDragItem,
   moveDragItem,
   updateCellData,
 } from '../utils/api'
-import { useAuthStore } from './auth'
 
 export interface Class {
   id: number
@@ -117,8 +114,7 @@ export const useScheduleStore = defineStore(
       }
 
       try {
-        timetable.value = [];
-        courseMap.value.clear();
+       await fetchSheets(currentClass.value.id);
         const sheetId = weekToSheetMap.value[week] || currentSheet.value?.id;
         if (!sheetId) {
           throw new Error("没有有效的sheetid");
@@ -148,6 +144,9 @@ export const useScheduleStore = defineStore(
           courseMap.value.set(course.id, course);
         });
         timetable.value = newCourses;
+        console.log('获取课表成功:', timetable.value);
+        console.log('sheeid:', sheetId);
+
         ElMessage.success('获取课表成功')
       } catch (error) {
         timetable.value = [];
@@ -286,8 +285,9 @@ export const useScheduleStore = defineStore(
     ElMessage.success('目标拖动成功');
 
   } catch (error) {
-    console.error('更新课程失败:', error);
-    ElMessage.error('部分请求失败，请稍后重试');
+    const errorMsg = (typeof error === 'object' && error !== null && 'msg' in error) ? (error as any).msg : '未知错误';
+    console.error('更新课程失败:', errorMsg);
+    ElMessage.error(`${errorMsg}`);
     throw error;
   } finally {
     pendingOperations.value.delete(operationId);

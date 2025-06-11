@@ -15,7 +15,6 @@
     <el-table-column prop="course" label="课程名称" width="180"/>
     <el-table-column prop="teacher" label="教师" width="150"/>
     <el-table-column prop="room" label="教室" width="150"/>
-    <!-- <el-table-column prop="lastUpdatedBy" label="最后更新人" width="150"/> -->
     <el-table-column fixed="right" label="Operations" min-width="120">
       <template #default="scope">
         <el-button link type="primary" size="small" @click="handleEdit(scope.row)">
@@ -93,14 +92,14 @@
             <el-option label="20:30-21:50 (第13-14节)" :value="8" />
           </el-select>
         </div>
-        <div class="form-group">
+        <!-- <div class="form-group">
           <label class="input-label">周次类型</label>
           <el-select v-model="editingCourse.week_type" class="modern-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" v-if="editingCourse">
             <el-option label="单周" value="single" />
             <el-option label="双周" value="double" />
             <el-option label="都有" value="all" />
           </el-select>
-        </div>
+        </div> -->
         <div class="button-group">
           <button @click="showEditDialog = false" class="cancel-btn">
             <span>取消</span>
@@ -214,7 +213,7 @@ function saveCourse() {
   align-items: flex-start;
   padding-top: 40px;
   padding-bottom: 40px;
-  overflow-y: auto;
+  overflow-y: hidden;
   z-index: 1000;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.3s ease;
@@ -224,8 +223,8 @@ function saveCourse() {
   background: white;
   padding: 2rem;
   border-radius: 16px;
-  width: 440px;
-  max-height: calc(100vh - 80px);
+  max-width: 500px;
+  max-height: calc(100vh - 100px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   transform: translateY(0);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);

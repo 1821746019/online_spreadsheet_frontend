@@ -24,28 +24,6 @@
               placeholder="请输入班级名称"
             >
           </div>
-<!--
-          <div class="form-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                v-model="formData.create_sheet"
-              >
-              创建周表格
-            </label>
-          </div>
-
-          <div v-if="formData.create_sheet" class="form-group">
-            <label for="weeks">周数</label>
-            <input
-              id="weeks"
-              v-model.number="formData.weeks"
-              type="number"
-              min="1"
-              placeholder="请输入周数"
-            >
-          </div> -->
-
           <div class="form-actions">
             <button type="button" class="cancel-btn" @click="showCreateDialog = false">取消</button>
             <button type="submit" class="submit-btn">创建</button>
@@ -65,16 +43,6 @@
         <button class="delete-btn" @click.stop="deleteClassHandler(classItem.id)">
           <span class="delete-icon">×</span>
         </button>
-        <!-- <div class="class-meta">
-          <div class="meta-item">
-            <span class="meta-label">创建时间:</span>
-            <span class="meta-value">{{ formatDate(classItem.create_time) }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">更新时间:</span>
-            <span class="meta-value">{{ formatDate(classItem.update_time) }}</span>
-          </div>
-        </div> -->
       </div>
     </div>
   </div>
@@ -113,8 +81,7 @@ const fetchClassList = async () => {
     console.log('班级列表:', classList.value);
   } catch (error) {
     console.error('获取班级列表失败:', error);
-    // 可以在这里设置默认值或提示用户
-    classList.value = []; // 避免 classList.value 变成 undefined
+    classList.value = []; // 确保在出错时清空班级列表
   }finally{
     loading.value = false
   }
@@ -148,17 +115,6 @@ const deleteClassHandler = async (classId: number) => {
       console.error('删除班级失败:', error);
     }
   }
-};
-
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 };
 
 const selectClass = (classItem: ClassItem) => {
@@ -258,29 +214,39 @@ onMounted(() => {
 
 .delete-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  width: 24px;
-  height: 24px;
-  background-color: #f56565;
-  color: white;
-  border: none;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  background: #ff6b6b;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(255, 107, 107, 0.3);
 }
 
-.delete-btn:hover {
-  background-color: #e53e3e;
-  transform: scale(1.1);
+.class-card:hover .delete-btn {
+  opacity: 1;
+  transform: scale(0.75);
 }
 
 .delete-icon {
-  font-size: 16px;
+  color: white;
+  font-size: 26px;
+  font-weight: 300;
   line-height: 1;
+  margin-top: -2px;
+}
+
+.delete-btn:hover {
+  background: #fa5252;
+  transform: scale(1.1) !important;
 }
 
 .class-meta {
