@@ -38,8 +38,8 @@ const selectedClass = store.currentClass
 // const classInfo = {
 //   id: store.currentClass?.id || 0
 // }
-onMounted(()=>{
-  store.fetchTimetable(store.currentWeek)
+onMounted(async()=>{
+  await store.fetchTimetable(store.currentWeek)
 })
 
 // 预定义的学期列表

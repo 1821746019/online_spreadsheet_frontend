@@ -1,7 +1,14 @@
 <template>
   <el-table :data="tableData" class="form" :key="tableKey">
     <el-table-column fixed prop="id" label="ID" width="120" />
-    <el-table-column prop="week_type" label="周次" width="80" />
+    <el-table-column prop="week_type" label="周次" width="80" >
+      <template #default="{ row }">
+    <span v-if="row.week_type === 'single'">单周</span>
+    <span v-else-if="row.week_type === 'double'">双周</span>
+    <span v-else-if="row.week_type === 'all'">全周</span>
+    <span v-else>{{ row.week_type }}</span> <!-- 兜底显示原值 -->
+  </template>
+    </el-table-column>
     <el-table-column prop="col_index" label="星期" width="100">
       <template #default="scope">
         {{ getDayFromColIndex(scope.row.col_index) }}
@@ -37,11 +44,14 @@
           <el-input
             v-model="editingCourse.course"
             type="text"
-            class="modern-input rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            class="modern-input"
             v-if="editingCourse"
           />
         </div>
         <div class="form-group">
+          <label class="input-label">授课教师:{{ editingCourse ? editingCourse.teacher : '' }}</label>
+        </div>
+        <!-- <div class="form-group">
           <label class="input-label">授课教师</label>
           <el-input
             v-model="editingCourse.teacher"
@@ -49,13 +59,13 @@
             class="modern-input rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             v-if="editingCourse"
           />
-        </div>
+        </div> -->
         <div class="form-group">
           <label class="input-label">教室</label>
           <el-input
             v-model="editingCourse.room"
             type="text"
-            class="modern-input rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            class="modern-input "
             v-if="editingCourse"
           />
         </div>
@@ -63,7 +73,7 @@
           <label class="input-label">星期</label>
           <el-select
             v-model="editingCourse.col_index"
-            class="modern-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            class="modern-input"
             v-if="editingCourse"
           >
             <el-option label="星期一" :value="1" />
@@ -79,7 +89,7 @@
           <label class="input-label">时间段</label>
           <el-select
             v-model="editingCourse.row_index"
-            class="modern-input w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            class="modern-input "
             v-if="editingCourse"
           >
             <el-option label="08:30-09:55 (第1-2节)" :value="1" />
@@ -139,7 +149,7 @@ const auth = useAuthStore()
 const tableKey = ref(0)
 
 function getDayFromColIndex(colIndex: number): string {
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const days = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期天'];
   return days[colIndex - 1] || 'Monday';
 }
 
@@ -152,11 +162,8 @@ function getTimeFromRowIndex(rowIndex: number): string {
   return times[rowIndex - 1] || '08:30-09:55';
 }
 
-const tableData = computed(() => {
-  return store.timetable.filter(course =>
-    course.classId === store.currentClass?.id
-  )
-})
+
+const tableData = computed(() => store.timetable);
 
 const forceTableUpdate = () => {
   tableKey.value++
@@ -274,14 +281,12 @@ function saveCourse() {
 
 .modern-input {
   width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: #111827;
-  background-color: #f9fafb;
-  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  /* padding: 12px 16px; */
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  /* background-color: #f8fafc; */
 }
 
 .modern-input:hover {
@@ -366,11 +371,17 @@ function saveCourse() {
 
   .button-group {
     flex-wrap: wrap;
+    padding-top: 4px;
+  padding-bottom: 2px;
   }
 
   .save-btn, .cancel-btn, .delete-btn {
     flex: 1;
     justify-content: center;
+    padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 100;
   }
+
 }
 </style>

@@ -119,11 +119,12 @@ export const useScheduleStore = defineStore(
         if (!sheetId) {
           throw new Error("没有有效的sheetid");
         }
-
+        console.log('当前获取课表工作表ID:', sheetId);
         const response = await fetchCellData(currentClass.value.id, sheetId);
         // console.log('cell', response.data);
 
         const cellData = response.data.filter((item) => item.item_id !== null);
+        console.log('response:', response);
         // timetable.value = [];
         // courseMap.value.clear();
         const newCourses = cellData.map(cell => ({
@@ -143,6 +144,7 @@ export const useScheduleStore = defineStore(
         newCourses.forEach((course) => {
           courseMap.value.set(course.id, course);
         });
+        console.log('课程Map:', newCourses);
         timetable.value = newCourses;
         console.log('获取课表成功:', timetable.value);
         console.log('sheeid:', sheetId);
@@ -210,18 +212,18 @@ export const useScheduleStore = defineStore(
           c.classId === currentClass.value?.id,
       )
     }
-    const convertTodragItem = (course: Course): any => {
-      return {
-        id: course.id,
-        classroom: course.room,
-        content: course.course,
-        teacher: course.teacher,
-        selected_class_ids: [course.classId],
-        week_type: course.week_type,
-        row_index: course.row_index,
-        col_index: course.col_index,
-      }
-    }
+    // const convertTodragItem = (course: Course): any => {
+    //   return {
+    //     id: course.id,
+    //     classroom: course.room,
+    //     content: course.course,
+    //     teacher: course.teacher,
+    //     selected_class_ids: [course.classId],
+    //     week_type: course.week_type,
+    //     row_index: course.row_index,
+    //     col_index: course.col_index,
+    //   }
+    // }
     async function updateCourse(updatedCourse: Course,ifposition: boolean = true) {
   const operationId = `update-${Date.now()}`;
   pendingOperations.value.add(operationId);

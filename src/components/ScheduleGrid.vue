@@ -99,7 +99,7 @@
             <el-option v-for="(time, index) in realtime" :key="time" :label="time" :value="index + 1" />
           </el-select>
         </div>
-        <div class="form-group"v-if="savedrag">
+        <div class="form-group"v-if="drgamitemlog">
           <label>周次类型</label>
           <el-select v-model="editingCourse.week_type" class="modern-input">
             <el-option label="单周" value="single" />
@@ -115,12 +115,14 @@
             <span>删除表格中课程</span>
           </button>
           <button @click="saveCourse" class="save-btn"v-if="!savedrag">
+            <!-- 保存表格中的课程和创建元素时保存 -->
             <span>保存</span>
           </button>
           <button @click="save_drag" class="save-btn"v-if="savedrag">
+            <!-- 保存修改的拖放元素 -->
             <span>保存课程</span>
           </button>
-          <button @click="delete_drag_item"class="delete-btn" v-if="drgamitemlog">
+          <button @click="delete_drag_item"class="delete-btn" v-if="drgamitemlog&&savedrag">
             <span>删除课程</span>
           </button>
         </div>
@@ -143,6 +145,7 @@ const draftCourses = ref([])
 const coursePool = ref(null)
 async function handleWeekChange(week) {
   setTimeout(async () => {
+    loading.value = true
     try {
       // 确保weekToSheetMap已初始化
       if (!store.weekToSheetMap || Object.keys(store.weekToSheetMap).length === 0) {
@@ -241,7 +244,8 @@ async function handleDrop(e, day) {
   // 计算目标时间槽并验证范围
   const slotIndex = Math.floor(mouseY / 80) + 1;
   if (slotIndex < 1 || slotIndex > realtime.length) {
-    console.warn('超出时间范围');
+    // console.warn('超出时间范围');
+    ElMessage.warning('超出时间范围，取消放置');
     return;
   }
 
@@ -339,6 +343,14 @@ try {
       }
       return course;
     });
+    await updateCellData(
+      store.currentClass.id || 0,
+      store.currentSheet.id || 0,
+      {
+        Row: updatedCourse.row_index,
+        Col: updatedCourse.col_index
+      }
+    )
   }
 }
 function getCourseStyle(course) {
@@ -468,15 +480,78 @@ async function saveCourse() {
       // if (courseExists) {
       //   // 更新已有课程
       const originalCourse = store.timetable.find(course => course.id === courseToSave.id);
+const hasConflict = store.timetable.some(course => {
+        if (course.id === courseToSave.id) return false;
+
+        const courseDay = days[course.col_index - 1];
+        const courseTime = realtime[course.row_index - 1];
+        const courseWeekType = course.week_type;
+
+        return courseDay === days[courseToSave.col_index - 1] &&
+               courseTime === realtime[courseToSave.row_index - 1] &&
+               (courseWeekType === 'all' || courseToSave.week_type === 'all' || courseWeekType === courseToSave.week_type);
+      });
+
+      if (hasConflict) {
+        ElMessage.warning('目标位置有冲突，取消保存');
+        return;
+      }
 
   if (originalCourse) {
-    // 检查 col_index 或 row_index 是否有一个相同
+    console.log('originalCourse',originalCourse)
+    console.log('courseToSave',courseToSave)
+    // 检查 col_index 或 row_index 是否有一个不相同
     if (originalCourse.col_index !== courseToSave.col_index ||
         originalCourse.row_index !== courseToSave.row_index) {
-      store.updateCourse(courseToSave);
+      const updateOperations = [];
 
+// 总是添加第一个操作
+const firstOp = store.updateCourse(courseToSave, false);
+updateOperations.push(firstOp);
+
+// 只有第一个操作成功时才添加第二个
+if (!originalCourse.hasConflict) {
+  const secondOp = firstOp.then(() =>
+    updateCellData(
+      store.currentClass.id || 0,
+      store.currentSheet.id || 0,
+      {
+        Row: originalCourse.row_index,
+        Col: originalCourse.col_index
+      }
+    )
+  );
+  updateOperations.push(secondOp);
+}
+
+try {
+  await Promise.all(updateOperations);
+} catch (error) {
+  console.error('更新操作失败:', error);
+  console.error('回退到原位置:', originalCourse.id);
+    store.timetable = store.timetable.map(course => {
+      if (course.id === originalCourse.id) {
+        return {
+          ...course,
+          col_index: originalCourse.col_index,
+          row_index: originalCourse.row_index
+        }
+      }
+    return course;
+    }
+    )
+    await updateCellData(
+      store.currentClass.id || 0,
+      store.currentSheet.id || 0,
+      {
+        Row: courseToSave.row_index,
+        Col: courseToSave.col_index
+      }
+    )
+  throw error;
+}
         }else{
-          store.updateCourse(courseToSave)
+          store.updateCourse(courseToSave,false)
     }
   }
     }
@@ -485,6 +560,12 @@ async function saveCourse() {
     showEditDialog.value = false;
   } catch (error) {
     console.error('保存课程失败:', error);
+  }finally {
+    // 清理编辑状态
+    editingCourse.value = false;
+    savedrag.value = false;
+    drgamitemlog.value = false;
+    showEditDialog.value = false;
   }
 }
 
@@ -804,6 +885,7 @@ onMounted(async()=>{
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   border: 1px solid rgba(0, 0, 0, 0.05);
   overflow-y: auto;
+  min-width: 400px;
 }
 
 @keyframes fadeIn {
@@ -954,6 +1036,7 @@ onMounted(async()=>{
   .modal-card {
     width: 90%;
     padding: 1.5rem;
+    min-width: 100px;
   }
 
   .button-group {
