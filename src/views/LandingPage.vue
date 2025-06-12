@@ -2,7 +2,7 @@
   <div class="landing-page">
     <div class="hero">
       <h1>多人在线表格编辑排课系统</h1>
-      <p class="subtitle">现代化、高效的课程安排解决方案</p>
+      <p class="subtitle">高效的课程安排解决方案</p>
       <div class="cta-buttons">
         <button @click="handleLogin" class="btn primary">登录</button>
         <button @click="handleRegister" class="btn secondary">注册</button>
@@ -22,7 +22,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import IconTooling from '@/components/icons/IconTooling.vue'
@@ -48,10 +47,10 @@ const handleRegister = () => {
     router.push('/register')
   }
 }
-const features = ref([
+const features = [
   {
     icon: IconTooling,
-    title: '智能排课',
+    title: '自由排课',
     description: '课程安排，解决时间冲突'
   },
   {
@@ -62,9 +61,9 @@ const features = ref([
   {
     icon: IconEcosystem,
     title: '团队协作',
-    description: '多人实时协同编辑'
+    description: '多人协同编辑'
   }
-])
+]
 </script>
 
 <style scoped>
