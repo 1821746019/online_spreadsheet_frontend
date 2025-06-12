@@ -24,7 +24,7 @@
         <div class="form-group">
           <input
             v-model="password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             id="password"
             required
             placeholder=" "
@@ -32,6 +32,12 @@
           />
           <label for="password" class="form-label">密码</label>
           <div class="form-underline"></div>
+          <span
+    class="password-toggle"
+    @click="showPassword = !showPassword"
+  >
+    <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+  </span>
         </div>
 
         <button type="submit" :disabled="loading" class="login-button">
@@ -61,6 +67,7 @@ import { useAuthStore } from '../stores/auth';
 
 const username = ref('');
 const password = ref('');
+const showPassword = ref(false);
 const error = ref('');
 const loading = ref(false);
 const router = useRouter();
@@ -131,7 +138,18 @@ const handleLogin = async () => {
   position: relative;
   margin-bottom: 8px;
 }
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
 
+.password-toggle i {
+  color: #666;
+  font-size: 18px;
+}
 .form-input {
   width: 100%;
   padding: 12px 0;

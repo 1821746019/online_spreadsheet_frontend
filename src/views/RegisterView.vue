@@ -37,7 +37,7 @@
         <div class="form-group">
           <input
             v-model="password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             id="password"
             required
             placeholder=" "
@@ -45,6 +45,12 @@
           />
           <label for="password" class="form-label">密码</label>
           <div class="form-underline"></div>
+          <span
+    class="password-toggle"
+    @click="showPassword = !showPassword"
+  >
+    <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+  </span>
         </div>
 
         <div class="form-group">
@@ -90,6 +96,7 @@ const username = ref('');
 const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
+const showPassword = ref(false);
 const error = ref('');
 const success = ref(false);
 const loading = ref(false);
@@ -293,7 +300,18 @@ const handleRegister = async () => {
   margin-bottom: 12px;
   animation: shake 0.5s ease-in-out;
 }
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
 
+.password-toggle i {
+  color: #666;
+  font-size: 18px;
+}
 .success-message {
   color: #38a169;
   font-size: 14px;
