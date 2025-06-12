@@ -1,7 +1,17 @@
 <template>
   <el-table :data="tableData" class="form" :key="tableKey">
-    <el-table-column fixed prop="id" label="ID" width="120" />
-    <el-table-column prop="week_type" label="周次" width="80" >
+    <el-table-column label="班级"width="200">
+    <template #default>
+      {{ currentClass?.name }} <!-- 直接显示 week 变量 -->
+    </template>
+  </el-table-column>
+    <el-table-column label="周次"width="100">
+    <template #default>
+      第{{ weeknumber }}周 <!-- 直接显示 week 变量 -->
+    </template>
+  </el-table-column>
+    <!-- <el-table-column fixed prop="id" label="ID" width="120" /> -->
+    <el-table-column prop="week_type" label="周类型" width="80" >
       <template #default="{ row }">
     <span v-if="row.week_type === 'single'">单周</span>
     <span v-else-if="row.week_type === 'double'">双周</span>
@@ -20,14 +30,15 @@
       </template>
     </el-table-column>
     <el-table-column prop="course" label="课程名称" width="180"/>
-    <el-table-column prop="teacher" label="教师" width="150"/>
+    <el-table-column prop="teacher" label="教师" width="100"/>
     <el-table-column prop="room" label="教室" width="150"/>
-    <el-table-column fixed="right" label="Operations" min-width="120">
+
+    <el-table-column fixed="right" label="操作" min-width="120">
       <template #default="scope">
-        <el-button link type="primary" size="small" @click="handleEdit(scope.row)">
+        <!-- <el-button link type="primary" size="small" @click="handleEdit(scope.row)">
           编辑
-        </el-button>
-        <el-button link type="danger" size="small" @click="handleDelete(scope.row.id)">
+        </el-button> -->
+        <el-button link type="danger" size="small" @click="handleDelete(scope.row)">
           删除
         </el-button>
       </template>
@@ -114,7 +125,7 @@
           <button @click="showEditDialog = false" class="cancel-btn">
             <span>取消</span>
           </button>
-          <button @click="handleDelete(editingCourse?.id.toString())" class="delete-btn" v-if="editingCourse">
+          <button @click="handleDelete(editingCourse)" class="delete-btn" v-if="editingCourse">
             <span>删除课程</span>
           </button>
           <button @click="saveCourse" class="save-btn">
@@ -164,7 +175,8 @@ function getTimeFromRowIndex(rowIndex: number): string {
 
 
 const tableData = computed(() => store.timetable);
-
+const weeknumber = computed(() => store.currentWeek)
+const currentClass = computed(() => store.currentClass)
 const forceTableUpdate = () => {
   tableKey.value++
 }
@@ -174,11 +186,27 @@ const editingCourse = ref<Course | null>(null)
 const showEditDialog = ref(false)
 
 const handleEdit = (row: Course) => {
+
+  // 深拷贝以避免直接修改原数据
   editingCourse.value = JSON.parse(JSON.stringify(row))
+  if(editingCourse.value?.teacher!=auth.user?.username) {
+    ElMessage.error('只能编辑自己的课程');
+    return;
+    // 如果正在编辑同一行，直接返回
+  }
   showEditDialog.value = true
 }
 
-const handleDelete = (id: string) => {
+const handleDelete = (row: Course) => {
+  const id = row.id.toString();
+  if (!id) {
+    ElMessage.error('课程ID不能为空');
+    return;
+  }
+  if(editingCourse.value?.teacher !== auth.user?.username) {
+    ElMessage.error('只能删除自己的课程');
+    return;
+  }
   store.removeCourse(id)
   console.log('Deleted course:', id)
   ElMessage.success('删除成功');
@@ -205,7 +233,8 @@ function saveCourse() {
 <style scoped>
 /* 保留原有样式不变 */
 .form {
-  max-width: 1800px;
+  max-width: 1700px;
+  min-width: 800px
 }
 
 .edit-modal {

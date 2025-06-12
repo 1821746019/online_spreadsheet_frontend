@@ -68,7 +68,6 @@
       <div class="form-group">
     <el-select
       v-model="editingCourse.teacher"
-      filterable
       clearable
       placeholder="请选择授课教师"
       class="modern-select"
@@ -226,7 +225,7 @@ function handleDragOver(e) {
 }
 
 function handleDragEnd(e) {
-  const courseId = e.dataTransfer.getData('text/plain');
+  // const courseId = e.dataTransfer.getData('text/plain');
   e.target.classList.remove('dragging');
 }
 
@@ -374,9 +373,13 @@ const showEditDialog = ref(false)
 const drgamitemlog=ref(false)
 const savedrag=ref(false)
 function handleDblClick(course) {
+  if (course.teacher !== auth.user.username) {
+    ElMessage.warning('您无权编辑其他老师的课程');
+    return;
+  }
   console.log('hand',course)
   editingCourse.value = {
-    week_type: 'all',
+    // week_type: 'all',
     ...(course || {}),
     id: course?.id //因为id类型问题现在获取的课表无法拖动，创建元素，更新元素等api没有导入
   }
@@ -413,7 +416,7 @@ function showCreateDialog() {
   editingCourse.value = {
     id: Math.random(100).toString(),
     course: '新课程',
-    teacher: '教师',
+    teacher: auth.user.username,
     room: '教室',
     week_type: 'all'
   }
@@ -665,13 +668,15 @@ async function fetchTeachers() {
     loadingTeachers.value = false;
   }
 }
+
 onMounted(async()=>{
   // console.log(getusers(),'users')
   if (store.currentClass?.id) {
     await store.fetchSheets(store.currentClass.id)
   }
   // console.log(getWeekcourse({week:3}),'getWeekcourse')
-  await fetchTeachers()
+  // await fetchTeachers()
+  teacherList.value.push(auth.user.username);
   await getdraglist()
 
 })
@@ -817,15 +822,25 @@ onMounted(async()=>{
 .course-title {
   font-weight: 600;
   font-size: 0.95em;
+  line-height: 1.3;
+  min-height: 1.5em;
   margin-bottom: 4px;
   color: #2d3748;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
 }
 
 .course-info {
-  font-size: 0.85em;
+  font-size: 0.75em;
   color: #4a5568;
-  line-height: 1.4;
+  line-height: 1.3;
+  min-height: 1.5em;
   flex-grow: 1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .user-indicator {
