@@ -22,7 +22,7 @@
 </template>
 
 <script setup name="EditorView">
-import {  onMounted } from 'vue'
+import {  computed, onMounted,onUnmounted } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 import ScheduleGrid from '../components/ScheduleGrid.vue'
 // import { emitOperation } from '../utils/socket'
@@ -38,10 +38,16 @@ const selectedClass = store.currentClass
 // const classInfo = {
 //   id: store.currentClass?.id || 0
 // }
+const week = computed(() => store.currentWeek)
 onMounted(async()=>{
-  await store.fetchTimetable(store.currentWeek)
+  console.log('EditorView mounted, starting timetable polling...',week.value)
+  await store.startPollingTimetable(week.value)
+  await store.fetchTimetable(week.value)
 })
-
+// 组件卸载时停止轮询
+onUnmounted(() => {
+  store.stopPollingTimetable();
+});
 // 预定义的学期列表
 // const semesters = ref([
 //   '2024-2025-第一学期',

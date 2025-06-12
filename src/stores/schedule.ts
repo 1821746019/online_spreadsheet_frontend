@@ -104,60 +104,129 @@ export const useScheduleStore = defineStore(
         throw error // 抛出错误以便调用方处理
       }
     }
+// 存储轮询的定时器ID
+let pollingInterval: number | null = null;
+// 存储当前轮询的周数
+let currentPollingWeek: number | null = null;
+
+// 轮询间隔时间（毫秒）
+const POLL_INTERVAL = 10000; // 30秒
+
+// 封装轮询逻辑
+function startPollingTimetable(week: number) {
+  // 停止之前的轮询
+  console.log('开始轮询课表，当前周数:', week);
+  stopPollingTimetable();
+
+  // 立即获取一次数据
+  fetchTimetable(week);
+
+  // 存储当前轮询的周数
+  currentPollingWeek = computed(() => currentWeek.value).value;
+
+  // 开始新的轮询
+  pollingInterval = window.setInterval(() => {
+    if (currentPollingWeek !== null) {
+      fetchTimetable(currentPollingWeek);
+    }
+  }, POLL_INTERVAL);
+}
+
+// 停止轮询
+function stopPollingTimetable() {
+  if (pollingInterval !== null) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+  currentPollingWeek = null;
+}
 
     async function fetchTimetable(week: number) {
-      currentWeek.value = week;
-      if (!currentClass.value?.id) {
-        timetable.value = [];
-        courseMap.value.clear();
-        return;
-      }
+  currentWeek.value = week;
+  if (!currentClass.value?.id) {
+    timetable.value = [];
+    courseMap.value.clear();
+    return;
+  }
 
-      try {
-       await fetchSheets(currentClass.value.id);
-        const sheetId = weekToSheetMap.value[week] || currentSheet.value?.id;
-        if (!sheetId) {
-          throw new Error("没有有效的sheetid");
-        }
-        console.log('当前获取课表工作表ID:', sheetId);
-        const response = await fetchCellData(currentClass.value.id, sheetId);
-        // console.log('cell', response.data);
-
-        const cellData = response.data.filter((item) => item.item_id !== null);
-        console.log('response:', response);
-        // timetable.value = [];
-        // courseMap.value.clear();
-        const newCourses = cellData.map(cell => ({
-          classId: currentClass.value!.id, // 使用 ! 因为前面已经检查过
-          col_index: cell.col_index,
-          course: cell.content,
-          hasConflict: false,
-          id: cell.item_id.toString(),
-          room: cell.class_room,
-          row_index: cell.row_index,
-          teacher: cell.teacher,
-          week_type: cell.week_type || 'all',
-        }));
-
-        // 更新 Map 和数组
-        courseMap.value.clear();
-        newCourses.forEach((course) => {
-          courseMap.value.set(course.id, course);
-        });
-        console.log('课程Map:', newCourses);
-        timetable.value = newCourses;
-        console.log('获取课表成功:', timetable.value);
-        console.log('sheeid:', sheetId);
-
-        ElMessage.success('获取课表成功')
-      } catch (error) {
-        timetable.value = [];
-        courseMap.value.clear();
-        console.error('获取课表失败:', error);
-        // 考虑在这里添加错误处理，如显示用户通知
-        ElMessage.warning('课表为空或获取课表失败')
-      }
+  try {
+    await fetchSheets(currentClass.value.id);
+    const sheetId = weekToSheetMap.value[week] || currentSheet.value?.id;
+    if (!sheetId) {
+      throw new Error("没有有效的sheetid");
     }
+    console.log('当前获取课表工作表ID:', sheetId);
+    const response = await fetchCellData(currentClass.value.id, sheetId);
+
+    const cellData = response.data.filter((item) => item.item_id !== null);
+    console.log('response:', response);
+
+    const newCourses = cellData.map(cell => ({
+      classId: currentClass.value!.id,
+      col_index: cell.col_index,
+      course: cell.content,
+      hasConflict: false,
+      id: cell.item_id.toString(),
+      room: cell.class_room,
+      row_index: cell.row_index,
+      teacher: cell.teacher,
+      week_type: cell.week_type || 'all',
+    }));
+
+    // 检查数据是否有变化
+    const hasChanged = checkTimetableChanges(newCourses);
+
+    if (hasChanged) {
+      // 更新 Map 和数组
+      courseMap.value.clear();
+      newCourses.forEach((course) => {
+        courseMap.value.set(course.id, course);
+      });
+      timetable.value = newCourses;
+      console.log('课表已更新:', timetable.value);
+      ElMessage.success('课表已更新');
+    } else {
+      console.log('课表无变化');
+    }
+
+  } catch (error) {
+    timetable.value = [];
+    courseMap.value.clear();
+    console.error('获取课表失败:', error);
+    ElMessage.warning('课表为空或获取课表失败');
+  }
+}
+
+// 检查课表是否有变化
+function checkTimetableChanges(newCourses: any[]): boolean {
+  // 如果长度不同，肯定有变化
+  if (timetable.value.length !== newCourses.length) {
+    return true;
+  }
+
+  // 检查每一项是否有变化
+  for (let i = 0; i < newCourses.length; i++) {
+    const newCourse = newCourses[i];
+    const oldCourse = timetable.value[i];
+
+    if (!oldCourse ||
+        newCourse.course !== oldCourse.course ||
+        newCourse.room !== oldCourse.room ||
+        newCourse.teacher !== oldCourse.teacher ||
+        newCourse.week_type !== oldCourse.week_type||
+        newCourse.col_index !== oldCourse.col_index ||
+        newCourse.row_index !== oldCourse.row_index||
+        newCourse.id !== oldCourse.id) {
+      console.log(`课程变化 detected at index ${i}:`, {
+        newCourse,
+        oldCourse,
+      });
+      return true;
+    }
+  }
+
+  return false;
+}
 
 
     // const convertToCourse = (cell: any, item: any): Course => {
@@ -407,6 +476,8 @@ export const useScheduleStore = defineStore(
       fetchSheets,
       weekToSheetMap,
       // convertToCourse,
+      startPollingTimetable,
+      stopPollingTimetable,
       totalweek
     }
   },

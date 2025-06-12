@@ -145,6 +145,7 @@ const coursePool = ref(null)
 async function handleWeekChange(week) {
   setTimeout(async () => {
     loading.value = true
+    store.stopPollingTimetable();
     try {
       // 确保weekToSheetMap已初始化
       if (!store.weekToSheetMap || Object.keys(store.weekToSheetMap).length === 0) {
@@ -164,6 +165,9 @@ async function handleWeekChange(week) {
     } catch (error) {
       console.error('切换周数失败:', error)
       ElMessage.error(`切换周数失败: ${error.message}`)
+    }finally {
+      loading.value = false
+      store.startPollingTimetable(week)
     }
   }, 0)
 }
@@ -208,6 +212,7 @@ function handleDragStart(e, course) {
     ElMessage.warning('您无权移动其他老师的课程');
     return;
   }
+  store.stopPollingTimetable();
   e.dataTransfer.setData('text/plain', course.id)
   e.dataTransfer.effectAllowed = 'move'
   e.target.classList.add('dragging')
@@ -342,15 +347,23 @@ try {
       }
       return course;
     });
-    await updateCellData(
-      store.currentClass.id || 0,
-      store.currentSheet.id || 0,
-      {
-        Row: updatedCourse.row_index,
-        Col: updatedCourse.col_index
-      }
-    )
-  }
+     const conflictCourse = store.timetable.find(course =>
+    course.row_index === updatedCourse.row_index &&
+    course.col_index === updatedCourse.col_index &&
+    course.teacher === auth.user.username
+  );
+
+    // await updateCellData(
+    //   store.currentClass.id || 0,
+    //   store.currentSheet.id || 0,
+    //   {
+    //     Row: updatedCourse.row_index,
+    //     Col: updatedCourse.col_index
+    //   }
+    // )
+}
+  await store.startPollingTimetable(store.currentWeek);
+
 }
 function getCourseStyle(course) {
   if(course.teacher !== auth.user.username){
@@ -543,14 +556,14 @@ try {
     return course;
     }
     )
-    await updateCellData(
-      store.currentClass.id || 0,
-      store.currentSheet.id || 0,
-      {
-        Row: courseToSave.row_index,
-        Col: courseToSave.col_index
-      }
-    )
+    // await updateCellData(
+    //   store.currentClass.id || 0,
+    //   store.currentSheet.id || 0,
+    //   {
+    //     Row: courseToSave.row_index,
+    //     Col: courseToSave.col_index
+    //   }
+    // )
   throw error;
 }
         }else{
