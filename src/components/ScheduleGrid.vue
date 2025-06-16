@@ -106,6 +106,11 @@
             <el-option label="全周" value="all" />
           </el-select>
         </div>
+        <div class="form-group"v-if="!drgamitemlog">
+          <label>周次类型</label>
+          <span class="modern-input"style='font-size: 14px;'>{{ { single: '单周', double: '双周', all: '全周' }[editingCourse.week_type] || editingCourse.week_type }}</span>
+        </div>
+
         <div class="button-group">
           <button @click="showEditDialog = false,drgamitemlog=false,savedrag=false" class="cancel-btn">
             <span>取消</span>
@@ -353,17 +358,16 @@ try {
     course.teacher === auth.user.username
   );
 
-    // await updateCellData(
-    //   store.currentClass.id || 0,
-    //   store.currentSheet.id || 0,
-    //   {
-    //     Row: updatedCourse.row_index,
-    //     Col: updatedCourse.col_index
-    //   }
-    // )
+    await updateCellData(
+      store.currentClass.id || 0,
+      store.currentSheet.id || 0,
+      {
+        Row: updatedCourse.row_index,
+        Col: updatedCourse.col_index
+      }
+    )
 }
   await store.startPollingTimetable(store.currentWeek);
-
 }
 function getCourseStyle(course) {
   if(course.teacher !== auth.user.username){
@@ -556,14 +560,14 @@ try {
     return course;
     }
     )
-    // await updateCellData(
-    //   store.currentClass.id || 0,
-    //   store.currentSheet.id || 0,
-    //   {
-    //     Row: courseToSave.row_index,
-    //     Col: courseToSave.col_index
-    //   }
-    // )
+    await updateCellData(
+      store.currentClass.id || 0,
+      store.currentSheet.id || 0,
+      {
+        Row: courseToSave.row_index,
+        Col: courseToSave.col_index
+      }
+    )
   throw error;
 }
         }else{

@@ -138,6 +138,7 @@ function stopPollingTimetable() {
     clearInterval(pollingInterval);
     pollingInterval = null;
   }
+  console.log('停止轮询课表');
   currentPollingWeek = null;
 }
 

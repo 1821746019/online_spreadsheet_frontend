@@ -174,7 +174,33 @@ function getTimeFromRowIndex(rowIndex: number): string {
 }
 
 
-const tableData = computed(() => store.timetable);
+const tableData = computed(() => {
+  // 获取原始数据
+  const data = store.timetable;
+
+  // 创建一个新数组并排序
+  return [...data].sort((a, b) => {
+    // 1. 先按 col_index 排序
+    if (a.col_index !== b.col_index) {
+      return a.col_index - b.col_index;
+    }
+
+    // 2. 如果 col_index 相同，按 row_index 排序
+    if (a.row_index !== b.row_index) {
+      return a.row_index - b.row_index;
+    }
+
+    // 3. 如果 row_index 也相同，按 week_type 排序
+    if (a.week_type !== b.week_type) {
+      // 假设 week_type 是字符串，按字母顺序排序
+      // 如果是数字，可以用 a.week_type - b.week_type
+      return a.week_type.localeCompare(b.week_type);
+    }
+
+    // 4. 如果 week_type 也相同，最后按 teacher 排序
+    return a.teacher.localeCompare(b.teacher);
+  });
+});
 const weeknumber = computed(() => store.currentWeek)
 const currentClass = computed(() => store.currentClass)
 const forceTableUpdate = () => {

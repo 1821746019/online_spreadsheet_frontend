@@ -56,7 +56,7 @@ const menuItems = [
   position: fixed;
   left: 0;
   top: 0;
-  height: 100vh;
+  min-height: 100vh;
   width: 220px;
   background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
   color: #2d3748;
