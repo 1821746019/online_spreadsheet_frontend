@@ -366,8 +366,9 @@ if(error.msg==='目标单元格已有拖拽元素'){
         Col: updatedCourse.col_index
       }
     )
-}
+}finally{
   await store.startPollingTimetable(store.currentWeek);
+}
 }
 function getCourseStyle(course) {
   if(course.teacher !== auth.user.username){
