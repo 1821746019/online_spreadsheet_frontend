@@ -148,7 +148,6 @@ const emit = defineEmits(['courseMoved'])
 const draftCourses = ref([])
 const coursePool = ref(null)
 async function handleWeekChange(week) {
-  setTimeout(async () => {
     loading.value = true
     store.stopPollingTimetable();
     try {
@@ -174,7 +173,6 @@ async function handleWeekChange(week) {
       loading.value = false
       store.startPollingTimetable(week)
     }
-  }, 0)
 }
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -357,7 +355,9 @@ try {
     course.col_index === updatedCourse.col_index &&
     course.teacher === auth.user.username
   );
-
+if(error.msg==='目标单元格已有拖拽元素'){
+  return
+}
     await updateCellData(
       store.currentClass.id || 0,
       store.currentSheet.id || 0,
