@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { type Operation } from '../utils/socket'
+// import { type Operation } from '../utils/socket'
 import { ElMessage } from 'element-plus';
 import * as api from '../utils/api'
 import  {
@@ -394,46 +394,46 @@ function checkTimetableChanges(newCourses: any[]): boolean {
       return hasConflict
     }
 
-    const operationQueue = ref<Operation[]>([])
+    // const operationQueue = ref<Operation[]>([])
     const pendingOperations = ref(new Set<string>())
 
-    function applyRemoteOperation(op: Operation) {
-      console.log('Applying remote operation:', op)
-      try {
-        switch (op.type) {
-          case 'insert':
-            if (!timetable.value.some((c) => c.id === op.data.id)) {
-              timetable.value.push(op.data)
-              checkConflicts(op.data)
-            }
-            break
-          case 'update':
-            const index = timetable.value.findIndex((c) => c.id === op.data.id)
-            if (index > -1) {
-              timetable.value[index] = op.data
-              checkConflicts(op.data)
-            }
-            break
-          case 'delete':
-            const delIndex = timetable.value.findIndex((c) => c.id === op.data.id)
-            if (delIndex > -1) {
-              timetable.value.splice(delIndex, 1)
-            }
-            break
-        }
-      } catch (e) {
-        console.error('Failed to apply operation:', op, e)
-        operationQueue.value.push(op)
-        setTimeout(() => {
-          if (operationQueue.value.length > 0) {
-            const nextOp = operationQueue.value.shift()
-            if (nextOp) {
-              applyRemoteOperation(nextOp)
-            }
-          }
-        }, 1000)
-      }
-    }
+    // function applyRemoteOperation(op: Operation) {
+    //   console.log('Applying remote operation:', op)
+    //   try {
+    //     switch (op.type) {
+    //       case 'insert':
+    //         if (!timetable.value.some((c) => c.id === op.data.id)) {
+    //           timetable.value.push(op.data)
+    //           checkConflicts(op.data)
+    //         }
+    //         break
+    //       case 'update':
+    //         const index = timetable.value.findIndex((c) => c.id === op.data.id)
+    //         if (index > -1) {
+    //           timetable.value[index] = op.data
+    //           checkConflicts(op.data)
+    //         }
+    //         break
+    //       case 'delete':
+    //         const delIndex = timetable.value.findIndex((c) => c.id === op.data.id)
+    //         if (delIndex > -1) {
+    //           timetable.value.splice(delIndex, 1)
+    //         }
+    //         break
+    //     }
+    //   } catch (e) {
+    //     console.error('Failed to apply operation:', op, e)
+    //     operationQueue.value.push(op)
+    //     setTimeout(() => {
+    //       if (operationQueue.value.length > 0) {
+    //         const nextOp = operationQueue.value.shift()
+    //         if (nextOp) {
+    //           applyRemoteOperation(nextOp)
+    //         }
+    //       }
+    //     }, 1000)
+    //   }
+    // }
 
     async function removeCourse(courseId: string) {
       const operationId = `remove-${Date.now()}`
@@ -472,8 +472,8 @@ function checkTimetableChanges(newCourses: any[]): boolean {
       getCoursesByDay,
       updateCourse,
       removeCourse,
-      applyRemoteOperation,
-      operationQueue,
+      // applyRemoteOperation,
+      // operationQueue,
       fetchSheets,
       weekToSheetMap,
       // convertToCourse,

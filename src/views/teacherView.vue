@@ -13,20 +13,9 @@
   </div>
 </template>
 
-<script>
-import { ref, watch } from 'vue'
+<script setup>
+import { ref } from 'vue'
 import TeacherSchedule from '../components/TeacherSchedule.vue'
 
-export default {
-  components: {
-    TeacherSchedule
-  },
-  setup() {
-    const currentWeek = ref(1)
-
-    return {
-      currentWeek
-    }
-  }
-}
+const currentWeek = ref(1)
 </script>

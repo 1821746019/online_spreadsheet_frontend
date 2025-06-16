@@ -3,7 +3,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import App from './App.vue'
-import { initSocket } from './utils/socket' // 新增导入
+// import { initSocket } from './utils/socket' // 新增导入
 import router from './router'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -21,6 +21,6 @@ app.use(ElementPlus)
 const authStore = useAuthStore();
 authStore.initialize();
 // 在 Pinia 初始化之后初始化 socket
-initSocket()
+// initSocket()
 
 app.mount('#app')

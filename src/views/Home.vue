@@ -5,7 +5,6 @@
       <div class="header-content">
         <div class="logo-container">
           <h1 class="logo">在线表格编辑系统</h1>
-          <!-- <div class="logo-subtitle">实时协作 · 在线编辑</div> -->
         </div>
         <div class="user-info">
           <template v-if="auth.$state.token">
@@ -35,28 +34,14 @@
       <router-view></router-view>
     </main>
 
-    <!-- 全局提示
-    <div v-if="collaborators.length > 0" class="collaborators-hint">
-      <div class="hint-content">
-        <div class="online-dots">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-        <span>当前有 {{ collaborators.length }} 位协作者在线</span>
-      </div>
-    </div> -->
   </div>
 </template>
 
 <script lang='ts' setup>
 import GlobalSidebar from '../components/SideBar.vue'
 import { useAuthStore } from '../stores/auth'
-import { useScheduleStore } from '../stores/schedule'
 import { useRouter } from 'vue-router';
-import { onMounted } from 'vue';
 import { ref, computed } from 'vue';
-// ...其他导入
 
 const sidebar = ref<InstanceType<typeof GlobalSidebar> | null>(null);
 
@@ -65,8 +50,6 @@ const sidebarMargin = computed(() => {
   return sidebar.value?.isCollapsed ? '70px' : '220px';
 });
 const auth = useAuthStore()
-const schedule = useScheduleStore()
-const collaborators = schedule.collaborators
 const router = useRouter();
 
 const handleLogout = async () => {

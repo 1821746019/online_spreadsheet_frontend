@@ -211,17 +211,17 @@ const forceTableUpdate = () => {
 const editingCourse = ref<Course | null>(null)
 const showEditDialog = ref(false)
 
-const handleEdit = (row: Course) => {
+// const handleEdit = (row: Course) => {
 
-  // 深拷贝以避免直接修改原数据
-  editingCourse.value = JSON.parse(JSON.stringify(row))
-  if(editingCourse.value?.teacher!=auth.user?.username) {
-    ElMessage.error('只能编辑自己的课程');
-    return;
-    // 如果正在编辑同一行，直接返回
-  }
-  showEditDialog.value = true
-}
+//   // 深拷贝以避免直接修改原数据
+//   editingCourse.value = JSON.parse(JSON.stringify(row))
+//   if(editingCourse.value?.teacher!=auth.user?.username) {
+//     ElMessage.error('只能编辑自己的课程');
+//     return;
+//     // 如果正在编辑同一行，直接返回
+//   }
+//   showEditDialog.value = true
+// }
 
 const handleDelete = (row: Course) => {
   const id = row.id.toString();

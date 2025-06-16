@@ -3,20 +3,11 @@
     <div class="page-header">
     <h2 class="modern-title">
       <span class="class-name">{{ selectedClass.name }}的课表</span>
-      <!-- <span class="separator">的</span> -->
-      <!-- <span class="sheet-name">{{ store.currentSheet.name }}</span> -->
     </h2>
   </div>
 
     <CourseDataform></CourseDataform>
     <hr>
-    <!-- <div class="toolbar">
-      <button @click="addNewCourse" class="feat-btn">添加课程</button>
-      <div class="current-user">
-        当前用户: {{ auth.user?.username }}
-        <span class="color-indicator" :style="{ backgroundColor: auth.user?.color || '#cccccc' }"></span>
-      </div>
-    </div> -->
     <ScheduleGrid />
   </div>
 </template>
@@ -25,19 +16,9 @@
 import {  computed, onMounted,onUnmounted } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 import ScheduleGrid from '../components/ScheduleGrid.vue'
-// import { emitOperation } from '../utils/socket'
-// import { useAuthStore } from '../stores/auth'
 import CourseDataform from '../components/CourseDataform.vue'
-// import { useRoute } from 'vue-router'
-// const auth = useAuthStore()
 const store = useScheduleStore()
 const selectedClass = store.currentClass
-// const selectedSemester = ref('2024-2025-第一学期')
-// 定义班级信息接口
-// const router = useRoute()
-// const classInfo = {
-//   id: store.currentClass?.id || 0
-// }
 const week = computed(() => store.currentWeek)
 onMounted(async()=>{
   console.log('EditorView mounted, starting timetable polling...',week.value)
@@ -48,91 +29,6 @@ onMounted(async()=>{
 onUnmounted(() => {
   store.stopPollingTimetable();
 });
-// 预定义的学期列表
-// const semesters = ref([
-//   '2024-2025-第一学期',
-//   '2024-2025-第二学期'
-// ])
-
-
-// function handleClassChange(classInfo) {
-//   store.setCurrentClass(classInfo)
-// }
-
-// function handleSemesterChange(semester) {
-//   store.setCurrentSemester(semester)
-// }
-
-// function handleCourseMoved(course) {
-//   emitOperation({
-//     type: 'update',
-//     data: course,
-//     version: Date.now(),
-//     timestamp: Date.now(),
-//     userId: auth.user?.username || 'unknown'
-//   })
-// }
-
-// function addNewCourse() {
-//   const newCourse = {
-//     id: typeof self !== 'undefined' && self.crypto && self.crypto.randomUUID
-//         ? self.crypto.randomUUID()
-//         : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-//             const r = Math.random() * 16 | 0,
-//                   v = c === 'x' ? r : (r & 0x3 | 0x8);
-//             return v.toString(16);
-//           }),
-//     day: 'Monday',
-//     start: '08:30',
-//     end: '9:55',
-//     course: '新课程',
-//     teacher: '新老师',
-//     room: '未分配',
-//     week: store.currentWeek,
-//     lastUpdatedBy: auth.user?.username || 'unknown',
-//     classId: store.currentClass?.id || 0,
-//     // semester: store.currentSemester || '2024-2025-第一学期'
-//   }
-//   store.timetable.push(newCourse)
-//   emitOperation({
-//     type: 'insert',
-//     data: newCourse,
-//     version: Date.now(),
-//     timestamp: Date.now(),
-//     userId: auth.user?.username || 'unknown'
-//   })
-// }
-
-
-
-
-
-
-
-
-// //课程块
-// const courses = ref([]);
-// const selectedIndex = ref(-1);
-
-// const addCourse = () => {
-//   courses.value.push({
-//     id: Date.now(),
-//     name: `课程 ${courses.value.length + 1}`
-//   });
-// };
-
-// const deleteCourse = (index) => {
-//   courses.value.splice(index, 1);
-//   if (selectedIndex.value === index) {
-//     selectedIndex.value = -1;
-//   } else if (selectedIndex.value > index) {
-//     selectedIndex.value--;
-//   }
-// };
-
-// const selectCourse = (index) => {
-//   selectedIndex.value = selectedIndex.value === index ? -1 : index;
-// };
 </script>
 
 <style scoped>
