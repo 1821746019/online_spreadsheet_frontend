@@ -513,5 +513,9 @@ const goToSheet = (sheet:Sheet) => {
   .form-actions {
     justify-content: space-between;
   }
+  .delete-btn {
+    opacity: 1;
+    transform: scale(0.75);
+  }
 }
 </style>

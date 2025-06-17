@@ -80,6 +80,7 @@ const getContrastColor = (hexColor: string) => {
   position: relative;
   z-index: 900;
   transition: margin-left 0.3s ease;
+  max-width: 1800px;
 }
 
 .header-gradient {
