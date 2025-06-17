@@ -49,7 +49,7 @@
     class="password-toggle"
     @click="showPassword = !showPassword"
   >
-    <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+    <i :class="showPassword ?  'fas fa-eye' :'fas fa-eye-slash'"></i>
   </span>
         </div>
 
