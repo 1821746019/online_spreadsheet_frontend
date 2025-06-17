@@ -47,7 +47,7 @@ const sidebar = ref<InstanceType<typeof GlobalSidebar> | null>(null);
 
 // 计算侧边栏的margin
 const sidebarMargin = computed(() => {
-  return sidebar.value?.isCollapsed ? '70px' : '220px';
+  return sidebar.value?.isCollapsed ? '60px' : '210px';
 });
 const auth = useAuthStore()
 const router = useRouter();
@@ -85,7 +85,7 @@ const getContrastColor = (hexColor: string) => {
 .header-gradient {
   height: 4px;
   width: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: #3a7bd5;
   position: absolute;
   bottom: 0;
   left: 0;
