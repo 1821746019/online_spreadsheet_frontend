@@ -7,7 +7,7 @@
         <span class="btn-text">创建课程表</span>
       </button>
     </div>
-
+<teleport to="body">
     <!-- 创建工作表对话框 -->
     <div v-if="showCreateDialog" class="modal-overlay">
       <div class="modal-content">
@@ -70,6 +70,7 @@
         </form>
       </div>
     </div>
+    </teleport>
 
     <!-- 工作表卡片列表 -->
     <div v-if="loading" class="loading">加载中...请稍后</div>
@@ -394,13 +395,18 @@ const goToSheet = (sheet:Sheet) => {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  overflow-y: hidden;
   z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
 }
 
 .modal-content {
@@ -409,6 +415,11 @@ const goToSheet = (sheet:Sheet) => {
   border-radius: 8px;
   width: 450px;
   max-width: 90%;
+  position: absolute;     /* 绝对定位 */
+  top: 25%;               /* 调整这个值控制偏上程度（默认50%是正中间） */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 

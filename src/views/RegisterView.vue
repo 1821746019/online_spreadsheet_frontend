@@ -4,7 +4,7 @@
       <div class="register-header">
         <h1>创建账户</h1>
         <p>加入我们，开始您的旅程</p>
-        <p><router-link to="/">回到首页</router-link></p>
+        <p><router-link to="/" class="login-text">回到首页</router-link></p>
       </div>
 
       <form @submit.prevent="handleRegister" class="register-form">
