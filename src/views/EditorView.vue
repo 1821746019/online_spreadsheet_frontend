@@ -35,7 +35,6 @@ onUnmounted(() => {
 .editor-view{
   flex: 1;
   padding: 1rem;
-  max-width: 1500px;
   width: 100%;
 }
 .page-header {
