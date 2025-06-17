@@ -259,7 +259,7 @@ function saveCourse() {
 <style scoped>
 /* 保留原有样式不变 */
 .form {
-  max-width: 1700px;
+  max-width: 1450px;
   min-width: 800px
 }
 

@@ -30,7 +30,7 @@
     <GlobalSidebar ref="sidebar"/>
 
     <!-- 主内容区 -->
-    <main class="app-main" :style="{ marginLeft: sidebarMargin }">
+    <main class="app-main" :style="{ marginLeft: sidebarMargin, transform: 'scale(0.95)', transformOrigin: '0 0' }">
       <router-view></router-view>
     </main>
 
@@ -47,7 +47,7 @@ const sidebar = ref<InstanceType<typeof GlobalSidebar> | null>(null);
 
 // 计算侧边栏的margin
 const sidebarMargin = computed(() => {
-  return sidebar.value?.isCollapsed ? '60px' : '210px';
+  return sidebar.value?.isCollapsed ? '60px' : '155px';
 });
 const auth = useAuthStore()
 const router = useRouter();
