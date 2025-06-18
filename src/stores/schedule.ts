@@ -204,7 +204,7 @@ function checkTimetableChanges(newCourses: any[]): boolean {
   if (timetable.value.length !== newCourses.length) {
     return true;
   }
-
+  console.log('对比的课表',timetable.value)
   // 检查每一项是否有变化
   for (let i = 0; i < newCourses.length; i++) {
     const newCourse = newCourses[i];

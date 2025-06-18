@@ -13,6 +13,9 @@
       <div class="modal-content">
         <h2>创建课程表</h2>
         <form @submit.prevent="createSheet">
+          <div class="form-group">
+            <label for="name"style='font-size: 16px;'>总周数：18 <span class="required">*</span></label>
+          </div>
           <!-- <div class="form-group">
             <label for="name">课程表名称 <span class="required">*</span></label>
             <input
@@ -73,9 +76,9 @@
     </teleport>
 
     <!-- 工作表卡片列表 -->
-    <div v-if="loading" class="loading">加载中...请稍后</div>
+    <div v-if="loading" class="loading">加载中...</div>
 
-    <div v-else class="sheet-grid">
+    <div class="sheet-grid">
       <div
         v-for="sheet in sheets"
         :key="sheet.id"
@@ -84,13 +87,13 @@
       >
         <div class="sheet-header">
           <h3>{{ sheet.name }}</h3>
-          <button
+          <!-- <button
             @click.stop="deleteSheet(<number>sheet.id)"
             class="delete-btn"
             title="删除工作表"
           >
             <span class="delete-icon">×</span>
-          </button>
+          </button> -->
         </div>
         <div class="sheet-meta">
           <div class="meta-item">
@@ -116,6 +119,7 @@ import { useRoute,useRouter } from 'vue-router'
 import * as api from '../utils/api'
 import { ElMessage } from 'element-plus';
 import { useScheduleStore } from '../stores/schedule'
+import { el } from 'element-plus/es/locale';
 // 定义工作表接口
 export interface Sheet {
   class_id?: number;
@@ -148,7 +152,7 @@ const newSheet = ref({
   row: 8,
   col: 7
 })
-
+const ifsheet=ref(false)
 // 组件挂载时获取工作表列表
 onMounted(() => {
   console.log('class_name:', class_name)
@@ -170,8 +174,16 @@ const fetchSheets = async () => {
       ? response.data.sheets
       : []
     console.log('工作表列表:', sheets.value)
+    if(sheets.value.length>0){
+      ifsheet.value=true
+    }else{
+      ifsheet.value=false
+    }
+    console.log('ifsheet',ifsheet.value)
   } catch (error) {
     console.error('获取工作表列表失败:', error)
+    const errorMsg = (typeof error === 'object' && error !== null && 'msg' in error) ? (error as any).msg : '未知错误';
+    ElMessage.error(`${errorMsg}` );
   } finally {
     loading.value = false
   }
@@ -204,12 +216,16 @@ const createSheet = async () => {
     i=i+1
     newSheet.value.week =i
   }
-  loading.value = false
+  newSheet.value.week=1
     ElMessage.success(`成功创建1~18周的课程表`)
 
   } catch (error) {
     console.error('创建工作表失败:', error)
     showCreateDialog.value = false
+    const errorMsg = (typeof error === 'object' && error !== null && 'msg' in error) ? (error as any).msg : '未知错误';
+    ElMessage.error(`${errorMsg}` );
+  }finally{
+  loading.value = false
   }
 }
 // 删除工作表

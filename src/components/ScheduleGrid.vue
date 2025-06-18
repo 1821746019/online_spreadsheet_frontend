@@ -411,6 +411,7 @@ function showupdate(course){
 }
 async function save_drag(){
   // store.
+  try{
   await updateDragItem(editingCourse.value.id, {
             class_room: editingCourse.value.room,
             content: editingCourse.value.course,
@@ -427,6 +428,10 @@ async function save_drag(){
     course => course.id !== editingCourse.value.id
   )
     await getdraglist()
+  }catch(error){
+    console.log(error)
+    ElMessage.error(`${error.msg}` );
+  }
 }
 // 显示创建对话框
 function showCreateDialog() {

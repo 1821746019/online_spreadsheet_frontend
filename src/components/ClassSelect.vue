@@ -83,6 +83,8 @@ const fetchClassList = async () => {
     console.log('班级列表:', classList.value);
   } catch (error) {
     console.error('获取班级列表失败:', error);
+    const errorMsg = (typeof error === 'object' && error !== null && 'msg' in error) ? (error as any).msg : '未知错误';
+    ElMessage.error(`${errorMsg}` );
     classList.value = []; // 确保在出错时清空班级列表
   }finally{
     loading.value = false
@@ -96,14 +98,17 @@ const createclass = async () => {
       create_sheet: formData.create_sheet,
       weeks: formData.create_sheet ? formData.weeks : undefined
     });
-    showCreateDialog.value = false;
     formData.name = '';
     formData.create_sheet = false;
     formData.weeks = 1;
     ElMessage.success('成功创建班级')
     await fetchClassList();
   } catch (error) {
+    const errorMsg = (typeof error === 'object' && error !== null && 'msg' in error) ? (error as any).msg : '未知错误';
+    ElMessage.error(`${errorMsg}` );
     console.error('创建班级失败:', error);
+  }finally{
+    showCreateDialog.value = false;
   }
 };
 
@@ -114,6 +119,8 @@ const deleteClassHandler = async (classId: number) => {
       ElMessage.success('成功删除班级')
       await fetchClassList();
     } catch (error) {
+      const errorMsg = (typeof error === 'object' && error !== null && 'msg' in error) ? (error as any).msg : '未知错误';
+      ElMessage.error(`${errorMsg}` );
       console.error('删除班级失败:', error);
     }
   }
