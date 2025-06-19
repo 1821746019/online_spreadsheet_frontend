@@ -229,7 +229,7 @@ const handleDelete = (row: Course) => {
     ElMessage.error('课程ID不能为空');
     return;
   }
-  if(editingCourse.value?.teacher !== auth.user?.username) {
+  if(row.teacher !== auth.user?.username) {
     ElMessage.error('只能删除自己的课程');
     return;
   }
