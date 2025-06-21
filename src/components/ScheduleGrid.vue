@@ -10,6 +10,9 @@
              @dragend="handleDragEnd"@dblclick="showupdate(course)" v-if="!loading">
           <div class="course-content">
             <span class="course-title">{{ course.course }}</span>
+             <span class="week-type" v-if="course.week_type === 'single'">单周</span>
+        <span class="week-type"v-else-if="course.week_type === 'double'">双周</span>
+    <span class="week-type" v-else-if="course.week_type === 'all'">全周</span>
             <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
           </div>
         </div>
@@ -45,6 +48,9 @@
             @dragend="handleDragEnd" :class="{ 'conflict': course.hasConflict }" @dblclick="handleDblClick(course)"v-if="!loading">
             <div class="course-content">
               <span class="course-title">{{ course.course }}</span>
+              <span class="week-type" v-if="course.week_type === 'single'">单周</span>
+        <span class="week-type"v-else-if="course.week_type === 'double'">双周</span>
+    <span class="week-type" v-else-if="course.week_type === 'all'">全周</span>
               <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
               <!-- <div v-if="course.lastUpdatedBy" class="user-indicator"
                 :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div> -->
@@ -329,12 +335,7 @@ if (!originalCourse.hasConflict) {
   updateOperations.push(secondOp);
 }
 
-try {
   await Promise.all(updateOperations);
-} catch (error) {
-  console.error('更新操作失败:', error);
-  throw error;
-}
     }
   } catch (error) {
     console.error('拖放操作失败:', error);
@@ -350,11 +351,6 @@ try {
       }
       return course;
     });
-     const conflictCourse = store.timetable.find(course =>
-    course.row_index === updatedCourse.row_index &&
-    course.col_index === updatedCourse.col_index &&
-    course.teacher === auth.user.username
-  );
 if(error.msg==='目标单元格已有拖拽元素'){
   return
 }
@@ -577,7 +573,7 @@ try {
   throw error;
 }
         }else{
-          store.updateCourse(courseToSave,false)
+          store.updateCourse(courseToSave,false,false)
     }
   }
     }
@@ -854,7 +850,16 @@ onMounted(async()=>{
   text-overflow: ellipsis;
 
 }
+.week-type {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.25em;
+    color: #2d3748;
 
+  padding: 0.1em 0.1em;
+  border-radius: 0.25em;
+}
 .course-info {
   font-size: 0.75em;
   color: #4a5568;
@@ -1156,6 +1161,9 @@ onMounted(async()=>{
 
   .course-info {
     font-size: 0.75em;
+  }
+  .week-type{
+    font-size: 0.15em;
   }
 }
 

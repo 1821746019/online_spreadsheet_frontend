@@ -122,7 +122,7 @@ function startPollingTimetable(week: number) {
   fetchTimetable(week);
 
   // 存储当前轮询的周数
-  currentPollingWeek = computed(() => currentWeek.value).value;
+  currentPollingWeek = week
 
   // 开始新的轮询
   pollingInterval = window.setInterval(() => {
@@ -142,7 +142,7 @@ function stopPollingTimetable() {
   currentPollingWeek = null;
 }
 
-    async function fetchTimetable(week: number) {
+async function fetchTimetable(week: number) {
   currentWeek.value = week;
   if (!currentClass.value?.id) {
     timetable.value = [];
@@ -294,10 +294,9 @@ function checkTimetableChanges(newCourses: any[]): boolean {
     //     col_index: course.col_index,
     //   }
     // }
-    async function updateCourse(updatedCourse: Course,ifposition: boolean = true) {
+    async function updateCourse(updatedCourse: Course,ifposition: boolean = true,nopoistionchange:boolean=true) {
   const operationId = `update-${Date.now()}`;
   pendingOperations.value.add(operationId);
-
   try {
     // 1. 准备数据
     // const auth = useAuthStore();
@@ -319,7 +318,6 @@ function checkTimetableChanges(newCourses: any[]): boolean {
     // 4. 异步检查冲突（不阻塞主流程）
     setTimeout(() => checkConflicts(finalCourse), 100);
     console.log('更新后的课程:', finalCourse);
-
     // 5. 并行API调用
     if (ifposition) {
     const [updateResult, moveResult] = await Promise.all([
@@ -336,10 +334,20 @@ function checkTimetableChanges(newCourses: any[]): boolean {
       }),
     ]);
   }else {
-    const moveResult = await moveDragItem(finalCourse.id, classId, sheetId, {
-      target_col: finalCourse.col_index,
-      target_row: finalCourse.row_index,
-    });
+    if(!nopoistionchange){
+
+      await updateDragItem(finalCourse.id, {
+        class_room: finalCourse.room,
+        content: finalCourse.course,
+        teacher: finalCourse.teacher,
+        selected_class_ids: [classId],
+        week_type: finalCourse.week_type,
+      })
+    }else{
+    const updateResult = await moveDragItem(finalCourse.id, classId, sheetId, {
+        target_col: finalCourse.col_index,
+        target_row: finalCourse.row_index,
+      });}
     console.log('移动结果:');
   }
   // //周类型修改后滞留问题
