@@ -836,6 +836,7 @@ onMounted(async()=>{
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
 }
 
 .course-title {
@@ -852,12 +853,10 @@ onMounted(async()=>{
 }
 .week-type {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: -5px;
+  right: -5px;
   font-size: 0.25em;
-    color: #2d3748;
-
-  padding: 0.1em 0.1em;
+  color: #2d3748;
   border-radius: 0.25em;
 }
 .course-info {
