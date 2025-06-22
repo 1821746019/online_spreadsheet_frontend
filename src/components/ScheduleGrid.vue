@@ -39,7 +39,7 @@
           </div>
         </div>
 
-        <div v-for="day in days" :key="day" class="day-column" @dragover.prevent="handleDragOver" @dragenter.prevent
+        <div v-for="day in days" :key="day" class="day-column" @dragover.prevent="handleDragOver"
           @drop="handleDrop($event, day)">
           <div v-for="time in realtime" :key="time" class="time-slot" :data-time="day + '-' + time"></div>
 
@@ -52,8 +52,6 @@
         <span class="week-type"v-else-if="course.week_type === 'double'">双周</span>
     <span class="week-type" v-else-if="course.week_type === 'all'">全周</span>
               <span class="course-info">{{ course.teacher }} @ {{ course.room }}</span>
-              <!-- <div v-if="course.lastUpdatedBy" class="user-indicator"
-                :style="{ backgroundColor: getUserColor(course.lastUpdatedBy) }"></div> -->
             </div>
           </div>
         </div>

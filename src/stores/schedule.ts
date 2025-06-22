@@ -108,7 +108,7 @@ export const useScheduleStore = defineStore(
 let pollingInterval: number | null = null;
 // 存储当前轮询的周数
 let currentPollingWeek: number | null = null;
-
+let abortController: AbortController | null = null;
 // 轮询间隔时间（毫秒）
 const POLL_INTERVAL = 10000; // 30秒
 
@@ -138,11 +138,21 @@ function stopPollingTimetable() {
     clearInterval(pollingInterval);
     pollingInterval = null;
   }
+  if (abortController !== null) {
+    abortController.abort(); // 取消当前正在进行的请求
+    abortController = null;
+  }
   console.log('停止轮询课表');
   currentPollingWeek = null;
 }
 
 async function fetchTimetable(week: number) {
+  if (abortController) {
+    abortController.abort();
+  }
+
+  // 创建新的 AbortController
+  abortController = new AbortController();
   currentWeek.value = week;
   if (!currentClass.value?.id) {
     timetable.value = [];
@@ -195,6 +205,10 @@ async function fetchTimetable(week: number) {
     courseMap.value.clear();
     console.error('获取课表失败:', error);
     ElMessage.warning('课表为空或获取课表失败');
+  }finally{
+    if (!abortController?.signal.aborted) {
+      abortController = null;
+    }
   }
 }
 
