@@ -78,7 +78,10 @@ const formData = reactive({
 const fetchClassList = async () => {
   try {
     loading.value = true
-    const classRes = await fetchClasses();
+    const classRes = await fetchClasses({
+      page: 1,
+      page_size: 999
+    });
     classList.value = classRes.data?.list || [];
     console.log('班级列表:', classList.value);
   } catch (error) {

@@ -29,9 +29,19 @@ instance.interceptors.response.use(
     return Promise.reject(error.response?.data || error.message);
   }
 );
-
+export interface classRequest {
+    /**
+     * 页码
+     */
+    page?: number;
+    /**
+     * 每页记录数
+     */
+    page_size?: number;
+    [property: string]: any;
+}
 // 班级相关API
-export const fetchClasses = () => instance.get('/classes');
+export const fetchClasses = (params:classRequest) => instance.get('/classes',{params});
 export const fetchClassById = (classId: number) => instance.get(`/classes/${classId}`);
 interface CreateClassParams {
   name: string;
