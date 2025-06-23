@@ -219,6 +219,7 @@ function handleDragStart(e, course) {
     ElMessage.warning('您无权移动其他老师的课程');
     return;
   }
+  store.ifdrag=false
   store.stopPollingTimetable();
   e.dataTransfer.setData('text/plain', course.id)
   e.dataTransfer.effectAllowed = 'move'
@@ -239,13 +240,13 @@ function handleDragOver(e) {
 function handleDragEnd(e) {
   // const courseId = e.dataTransfer.getData('text/plain');
   e.target.classList.remove('dragging');
+  store.ifdrag=true
 }
 
 
 
 async function handleDrop(e, day) {
   e.preventDefault();
-
   // 提取数据
   const courseId = e.dataTransfer.getData('text/plain');
   const targetColumn = e.currentTarget;
@@ -349,6 +350,7 @@ if (!originalCourse.hasConflict) {
       }
       return course;
     });
+    
 if(error.msg==='目标单元格已有拖拽元素'){
   return
 }

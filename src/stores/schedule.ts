@@ -75,6 +75,7 @@ export const useScheduleStore = defineStore(
     const currentClass = ref<Class | null>(null)
     const currentSheet = ref<Sheet | null>(null)
     const collaborators = ref([])
+    const ifdrag=ref(true)
     // const auth = useAuthStore()
 
     async function fetchSheets(classId: number) {
@@ -154,6 +155,9 @@ async function fetchTimetable(week: number) {
   // 创建新的 AbortController
   abortController = new AbortController();
   currentWeek.value = week;
+  if(ifdrag.value===false){
+    return
+  }
   if (!currentClass.value?.id) {
     timetable.value = [];
     courseMap.value.clear();
@@ -497,7 +501,8 @@ function checkTimetableChanges(newCourses: Course[]): boolean {
       // convertToCourse,
       startPollingTimetable,
       stopPollingTimetable,
-      totalweek
+      totalweek,
+      ifdrag
     }
   },
   {
