@@ -110,7 +110,7 @@ let pollingInterval: number | null = null;
 let currentPollingWeek: number | null = null;
 let abortController: AbortController | null = null;
 // 轮询间隔时间（毫秒）
-const POLL_INTERVAL = 10000; // 30秒
+const POLL_INTERVAL = 3000; // 10秒
 
 // 封装轮询逻辑
 function startPollingTimetable(week: number) {
@@ -119,7 +119,7 @@ function startPollingTimetable(week: number) {
   stopPollingTimetable();
 
   // 立即获取一次数据
-  fetchTimetable(week);
+  // fetchTimetable(week);
 
   // 存储当前轮询的周数
   currentPollingWeek = week
@@ -212,30 +212,26 @@ async function fetchTimetable(week: number) {
   }
 }
 
-// 检查课表是否有变化
-function checkTimetableChanges(newCourses: any[]): boolean {
+// 在 schedule.ts 中
+function checkTimetableChanges(newCourses: Course[]): boolean {
   // 如果长度不同，肯定有变化
   if (timetable.value.length !== newCourses.length) {
     return true;
   }
-  console.log('对比的课表',timetable.value)
-  // 检查每一项是否有变化
-  for (let i = 0; i < newCourses.length; i++) {
-    const newCourse = newCourses[i];
-    const oldCourse = timetable.value[i];
 
-    if (!oldCourse ||
-        newCourse.course !== oldCourse.course ||
-        newCourse.room !== oldCourse.room ||
-        newCourse.teacher !== oldCourse.teacher ||
-        newCourse.week_type !== oldCourse.week_type||
+  // 使用 Map 快速查找
+  const currentMap = new Map(timetable.value.map(c => [c.id, c]));
+
+  for (const newCourse of newCourses) {
+    const oldCourse = currentMap.get(newCourse.id);
+    if (!oldCourse) return true;
+
+    if (newCourse.row_index !== oldCourse.row_index ||
         newCourse.col_index !== oldCourse.col_index ||
-        newCourse.row_index !== oldCourse.row_index||
-        newCourse.id !== oldCourse.id) {
-      console.log(`课程变化 detected at index ${i}:`, {
-        newCourse,
-        oldCourse,
-      });
+        newCourse.course !== oldCourse.course ||
+        newCourse.teacher !== oldCourse.teacher ||
+        newCourse.room !== oldCourse.room ||
+        newCourse.week_type !== oldCourse.week_type) {
       return true;
     }
   }
